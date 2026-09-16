@@ -1,10 +1,10 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { C, T } from '@/constants/theme';
+import { C, Fonts, T } from '@/constants/theme';
 
 const CAMERAS = [
   {
@@ -37,172 +37,278 @@ export default function CameraSelectionScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState('disposable');
 
+  const selectedCam =
+    CAMERAS.find((cam) => cam.id === selected) || CAMERAS[0];
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtnWrap} onPress={() => router.back()}>
-          <View style={styles.backBtn}>
+    <View style={styles.container}>
+      {/* Background Image representing the active filter */}
+      <Image
+        source={selectedCam.image}
+        style={styles.bgImage}
+        contentFit="cover"
+      />
+
+      {/* Atmospheric dark overlays for readability */}
+      <View style={styles.topVignette} />
+      <View style={styles.darkOverlay} />
+      <View style={styles.bottomVignette} />
+
+      <SafeAreaView style={styles.safe}>
+        {/* Bare back button */}
+        <View style={styles.header}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            hitSlop={12}>
             <Text style={styles.backIcon}>←</Text>
-          </View>
-        </Pressable>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
-        <Text style={styles.headline}>Which camera would{'\n'}you like to use?</Text>
-        <Text style={styles.subtext}>Choose a camera that fits your style.</Text>
-
-        <View style={styles.cameraList}>
-          {CAMERAS.map((cam) => (
-            <Pressable
-              key={cam.id}
-              style={[styles.cameraCard, selected === cam.id && styles.cameraCardActive]}
-              onPress={() => setSelected(cam.id)}>
-              <View style={styles.cameraPreview}>
-                <Image source={cam.image} style={styles.cameraImg} contentFit="cover" />
-                <View style={styles.cameraImgOverlay} />
-                <View style={styles.cameraLabelBadge}>
-                  <Text style={styles.cameraLabelText}>{cam.label}</Text>
-                </View>
-              </View>
-              <View style={styles.cameraInfo}>
-                <View>
-                  <Text style={styles.cameraName}>{cam.name}</Text>
-                  <Text style={styles.cameraDesc}>{cam.desc}</Text>
-                </View>
-                <View style={styles.cameraMeta}>
-                  <Text style={styles.cameraShots}>{cam.shots} shots</Text>
-                  {selected === cam.id && (
-                    <View style={styles.selectedBadge}>
-                      <Text style={styles.selectedBadgeText}>Selected</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </Pressable>
-          ))}
+          </Pressable>
         </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <Pressable
-          style={styles.nextBtn}
-          onPress={() => router.push('/create/invitation-card')}>
-          <Text style={styles.nextBtnLabel}>Continue</Text>
-          <Text style={styles.nextBtnIcon}>→</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+        {/* Title & Subtext */}
+        <View style={styles.titleArea}>
+          <Text style={styles.headline}>
+            Which camera would{'\n'}you like to use?
+          </Text>
+          <Text style={styles.subtext}>Choose a camera that fits your style.</Text>
+        </View>
+
+        {/* Center space revealing the full filter preview */}
+        <View style={styles.centerStage} />
+
+        {/* Bottom Section: Camera Options in One Row (side-by-side) */}
+        <View style={styles.bottomSection}>
+          <View style={styles.optionsRow}>
+            {CAMERAS.map((cam) => {
+              const isActive = selected === cam.id;
+              return (
+                <Pressable
+                  key={cam.id}
+                  style={[
+                    styles.cameraCard,
+                    isActive && styles.cameraCardActive,
+                  ]}
+                  onPress={() => setSelected(cam.id)}>
+                  {/* Miniature filter thumbnail */}
+                  <View style={styles.thumbnailWrap}>
+                    <Image
+                      source={cam.image}
+                      style={styles.thumbnailImg}
+                      contentFit="cover"
+                    />
+                    {isActive && <View style={styles.thumbnailActiveBorder} />}
+                  </View>
+
+                  {/* Camera Name */}
+                  <View style={styles.cardInfo}>
+                    <Text
+                      style={[
+                        styles.cameraName,
+                        isActive && styles.cameraNameActive,
+                      ]}
+                      numberOfLines={1}>
+                      {cam.name}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Continue Button */}
+          <Pressable
+            style={styles.continueBtn}
+            onPress={() => router.push('/create/invitation-card')}>
+            <Text style={styles.continueBtnLabel}>Continue</Text>
+            <Text style={styles.continueBtnIcon}>→</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  header: { paddingHorizontal: 24, paddingTop: 8 },
-  backBtnWrap: {},
-  backBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: C.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: `${C.outlineVariant}33`,
+  container: {
+    flex: 1,
+    backgroundColor: C.background,
   },
-  backIcon: { fontSize: 20, color: C.onSurface },
+  safe: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
 
-  scroll: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 },
+  bgImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  /* Vignette and atmosphere overlays */
+  darkOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  topVignette: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 240,
+    backgroundColor: 'rgba(19, 19, 19, 0.78)',
+  },
+  bottomVignette: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 310,
+    backgroundColor: 'rgba(19, 19, 19, 0.88)',
+  },
 
+  /* Header */
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  backBtn: {
+    padding: 8,
+    alignSelf: 'flex-start',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: '#ffffff',
+  },
+
+  /* Title Area */
+  titleArea: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 4,
+  },
   headline: {
     ...T.headlineLgMobile,
+    fontSize: 30,
+    lineHeight: 38,
     textAlign: 'center',
-    color: C.onSurface,
+    color: '#ffffff',
     marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   subtext: {
     ...T.bodyMd,
-    color: C.onSurfaceVariant,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 32,
-    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 
-  cameraList: { gap: 16 },
-  cameraCard: {
+  /* Center Stage */
+  centerStage: {
+    flex: 1,
+  },
+
+  /* Bottom Section with One Row Options */
+  bottomSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  optionsRow: {
     flexDirection: 'row',
+    gap: 10,
+  },
+  cameraCard: {
+    flex: 1,
     borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: C.surface,
+    backgroundColor: 'rgba(30, 29, 28, 0.85)',
     borderWidth: 1,
-    borderColor: `${C.outlineVariant}33`,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 8,
+    alignItems: 'center',
+    gap: 8,
   },
   cameraCardActive: {
+    backgroundColor: 'rgba(255, 196, 153, 0.14)',
+    borderWidth: 1.5,
     borderColor: C.primary,
-    backgroundColor: C.surfaceHigh,
     shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  cameraPreview: {
-    width: 100,
-    height: 120,
+
+  thumbnailWrap: {
+    width: '100%',
+    height: 70,
+    borderRadius: 10,
+    overflow: 'hidden',
     position: 'relative',
   },
-  cameraImg: { width: '100%', height: '100%' },
-  cameraImgOverlay: {
-    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+  thumbnailImg: {
+    width: '100%',
+    height: '100%',
   },
-  cameraLabelBadge: {
+  thumbnailActiveBorder: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  cameraLabelText: { ...T.label, color: C.onSurface },
-  cameraInfo: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  cameraName: { ...T.headlineMd, fontSize: 20, color: C.onSurface, marginBottom: 4 },
-  cameraDesc: { ...T.bodyMd, fontSize: 14, color: C.onSurfaceVariant, lineHeight: 20 },
-  cameraMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cameraShots: { ...T.label, color: C.onSurfaceVariant },
-  selectedBadge: {
-    backgroundColor: `${C.primary}1a`,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 100,
-    borderWidth: 1,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 1.5,
     borderColor: C.primary,
+    borderRadius: 10,
   },
-  selectedBadgeText: { ...T.label, color: C.primary },
 
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 48,
-    paddingTop: 16,
+  cardInfo: {
+    alignItems: 'center',
+    width: '100%',
+    paddingVertical: 2,
   },
-  nextBtn: {
+  cameraName: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  cameraNameActive: {
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+
+  /* Continue Button */
+  continueBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: C.secondaryFixed,
-    paddingVertical: 16,
+    paddingVertical: 15,
     borderRadius: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  nextBtnLabel: { ...T.bodyMd, fontWeight: '600', color: C.onSecondaryFixed },
-  nextBtnIcon: { fontSize: 18, color: C.onSecondaryFixed },
+  continueBtnLabel: {
+    ...T.bodyMd,
+    fontSize: 16,
+    fontWeight: '700',
+    color: C.onSecondaryFixed,
+  },
+  continueBtnIcon: {
+    fontSize: 18,
+    color: C.onSecondaryFixed,
+  },
 });

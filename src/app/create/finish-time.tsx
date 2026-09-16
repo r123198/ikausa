@@ -222,11 +222,10 @@ export default function FinishTimeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Bare back button */}
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <View style={styles.backBtnInner}>
-            <Text style={styles.backIcon}>←</Text>
-          </View>
+          <Text style={styles.backIcon}>←</Text>
         </Pressable>
       </View>
 
@@ -241,7 +240,7 @@ export default function FinishTimeScreen() {
         </Text>
 
         <View style={styles.calendarWrap}>
-          {/* Month Navigation & Month Picker Trigger */}
+          {/* Bare Month Navigation */}
           <View style={styles.monthNav}>
             <Pressable
               style={[styles.monthNavBtn, !canGoPrev && styles.monthNavBtnDisabled]}
@@ -352,32 +351,33 @@ export default function FinishTimeScreen() {
 
         <View style={styles.divider} />
 
-        {/* Time Picker & Presets */}
+        {/* Bare Time Section */}
         <View style={styles.timeSection}>
           <View style={styles.timePickerRow}>
             <Text style={styles.timeLabel}>Time</Text>
-            <Pressable style={styles.timeBtn} onPress={openTimeModal}>
-              <Text style={styles.timeBtnText}>{formattedTime}</Text>
-              <Text style={styles.timeBtnEditIcon}>✎</Text>
+            <Pressable style={styles.bareTimeBtn} onPress={openTimeModal}>
+              <Text style={styles.bareTimeText}>{formattedTime}</Text>
+              <Text style={styles.bareTimeEditIcon}>✎</Text>
             </Pressable>
           </View>
 
-          {/* Quick Time Presets */}
+          {/* Bare Quick Time Presets */}
           <View style={styles.presetRow}>
             {TIME_PRESETS.map((p) => {
               const isActive = formattedTime === p;
               return (
                 <Pressable
                   key={p}
-                  style={[styles.presetChip, isActive && styles.presetChipActive]}
+                  style={styles.barePresetChip}
                   onPress={() => applyPreset(p)}>
                   <Text
                     style={[
-                      styles.presetText,
-                      isActive && styles.presetTextActive,
+                      styles.barePresetText,
+                      isActive && styles.barePresetTextActive,
                     ]}>
                     {p}
                   </Text>
+                  {isActive && <View style={styles.presetUnderline} />}
                 </Pressable>
               );
             })}
@@ -385,7 +385,7 @@ export default function FinishTimeScreen() {
         </View>
       </ScrollView>
 
-      {/* Time Editor Modal */}
+      {/* Bare Minimal Time Editor Modal */}
       <Modal
         visible={showTimeModal}
         transparent
@@ -399,22 +399,19 @@ export default function FinishTimeScreen() {
             onPress={() => setShowTimeModal(false)}
           />
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Finish Time</Text>
-            <Text style={styles.modalSub}>
-              Type or adjust hours, minutes, and AM/PM
-            </Text>
+            <Text style={styles.modalTitle}>Set Finish Time</Text>
 
-            {/* Time Adjuster Component */}
+            {/* Time Display with bare steppers & inputs */}
             <View style={styles.timeEditGrid}>
               {/* Hour Column */}
               <View style={styles.timeCol}>
                 <Pressable
-                  style={styles.stepperBtn}
+                  style={styles.bareStepperBtn}
                   onPress={() => adjustTempHour(1)}>
-                  <Text style={styles.stepperArrow}>▲</Text>
+                  <Text style={styles.bareStepperArrow}>▲</Text>
                 </Pressable>
                 <TextInput
-                  style={styles.timeInput}
+                  style={styles.bareTimeInput}
                   value={tempHour}
                   onChangeText={(val) =>
                     setTempHour(val.replace(/[^0-9]/g, '').slice(0, 2))
@@ -424,11 +421,10 @@ export default function FinishTimeScreen() {
                   selectTextOnFocus
                 />
                 <Pressable
-                  style={styles.stepperBtn}
+                  style={styles.bareStepperBtn}
                   onPress={() => adjustTempHour(-1)}>
-                  <Text style={styles.stepperArrow}>▼</Text>
+                  <Text style={styles.bareStepperArrow}>▼</Text>
                 </Pressable>
-                <Text style={styles.unitLabel}>HOUR</Text>
               </View>
 
               <Text style={styles.colonSeparator}>:</Text>
@@ -436,12 +432,12 @@ export default function FinishTimeScreen() {
               {/* Minute Column */}
               <View style={styles.timeCol}>
                 <Pressable
-                  style={styles.stepperBtn}
+                  style={styles.bareStepperBtn}
                   onPress={() => adjustTempMinute(5)}>
-                  <Text style={styles.stepperArrow}>▲</Text>
+                  <Text style={styles.bareStepperArrow}>▲</Text>
                 </Pressable>
                 <TextInput
-                  style={styles.timeInput}
+                  style={styles.bareTimeInput}
                   value={tempMinute}
                   onChangeText={(val) =>
                     setTempMinute(val.replace(/[^0-9]/g, '').slice(0, 2))
@@ -451,39 +447,32 @@ export default function FinishTimeScreen() {
                   selectTextOnFocus
                 />
                 <Pressable
-                  style={styles.stepperBtn}
+                  style={styles.bareStepperBtn}
                   onPress={() => adjustTempMinute(-5)}>
-                  <Text style={styles.stepperArrow}>▼</Text>
+                  <Text style={styles.bareStepperArrow}>▼</Text>
                 </Pressable>
-                <Text style={styles.unitLabel}>MIN</Text>
               </View>
 
-              {/* AM / PM Toggle */}
-              <View style={styles.periodCol}>
+              {/* Bare AM / PM Toggle */}
+              <View style={styles.barePeriodCol}>
                 <Pressable
-                  style={[
-                    styles.periodBtn,
-                    tempPeriod === 'AM' && styles.periodBtnActive,
-                  ]}
+                  style={styles.barePeriodBtn}
                   onPress={() => setTempPeriod('AM')}>
                   <Text
                     style={[
-                      styles.periodBtnText,
-                      tempPeriod === 'AM' && styles.periodBtnTextActive,
+                      styles.barePeriodText,
+                      tempPeriod === 'AM' && styles.barePeriodTextActive,
                     ]}>
                     AM
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={[
-                    styles.periodBtn,
-                    tempPeriod === 'PM' && styles.periodBtnActive,
-                  ]}
+                  style={styles.barePeriodBtn}
                   onPress={() => setTempPeriod('PM')}>
                   <Text
                     style={[
-                      styles.periodBtnText,
-                      tempPeriod === 'PM' && styles.periodBtnTextActive,
+                      styles.barePeriodText,
+                      tempPeriod === 'PM' && styles.barePeriodTextActive,
                     ]}>
                     PM
                   </Text>
@@ -528,10 +517,7 @@ export default function FinishTimeScreen() {
                 return (
                   <Pressable
                     key={`${item.year}-${item.month}`}
-                    style={[
-                      styles.monthListItem,
-                      isCurrentView && styles.monthListItemActive,
-                    ]}
+                    style={styles.monthListItem}
                     onPress={() => {
                       setViewYear(item.year);
                       setViewMonth(item.month);
@@ -583,24 +569,17 @@ export default function FinishTimeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
-  header: { paddingHorizontal: 24, paddingTop: 8 },
-  backBtn: {},
-  backBtnInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: `${C.outline}1a`,
-    alignItems: 'center',
-    justifyContent: 'center',
+  header: { paddingHorizontal: 20, paddingTop: 10 },
+  backBtn: {
+    padding: 8,
+    alignSelf: 'flex-start',
   },
-  backIcon: { fontSize: 20, color: C.onSurface },
+  backIcon: { fontSize: 24, color: C.onSurface },
 
   scroll: { flex: 1 },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 12,
     paddingBottom: 32,
     alignItems: 'center',
   },
@@ -625,33 +604,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     marginBottom: 16,
   },
   monthNavBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  monthNavBtnDisabled: { opacity: 0.25 },
-  monthNavArrow: { fontSize: 18, color: C.onSurface },
+  monthNavBtnDisabled: { opacity: 0.2 },
+  monthNavArrow: { fontSize: 22, color: C.onSurface },
   monthNavArrowDisabled: { color: C.onSurfaceVariant },
   monthLabelBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 10,
   },
-  monthLabel: { ...T.headlineMd, fontSize: 20, color: C.onSurface },
-  monthChevron: { fontSize: 12, color: C.primary },
+  monthLabel: { ...T.headlineMd, fontSize: 22, color: C.onSurface },
+  monthChevron: { fontSize: 13, color: C.primary },
 
   daysHeader: { flexDirection: 'row', marginBottom: 8 },
   dayHeaderCell: { flex: 1, alignItems: 'center' },
@@ -693,12 +665,12 @@ const styles = StyleSheet.create({
   divider: {
     width: '100%',
     height: 1,
-    backgroundColor: `${C.outline}1a`,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     marginVertical: 16,
   },
 
-  /* Time Section */
-  timeSection: { width: '100%', gap: 12 },
+  /* Bare Time Section */
+  timeSection: { width: '100%', gap: 10 },
   timePickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -712,55 +684,63 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: C.onSurfaceVariant,
   },
-  timeBtn: {
+  bareTimeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: C.surfaceHigh,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
   },
-  timeBtnText: { ...T.bodyMd, fontSize: 16, fontWeight: '600', color: C.onSurface },
-  timeBtnEditIcon: { fontSize: 12, color: C.primary },
+  bareTimeText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 22,
+    fontWeight: '700',
+    color: C.primary,
+    letterSpacing: 0.5,
+  },
+  bareTimeEditIcon: {
+    fontSize: 13,
+    color: C.primary,
+    opacity: 0.75,
+  },
 
   presetRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
     paddingHorizontal: 4,
+    paddingTop: 4,
   },
-  presetChip: {
-    paddingHorizontal: 12,
+  barePresetChip: {
     paddingVertical: 6,
-    borderRadius: 100,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 4,
+    alignItems: 'center',
   },
-  presetChipActive: {
-    backgroundColor: `${C.primary}22`,
-    borderColor: C.primary,
-  },
-  presetText: {
+  barePresetText: {
     ...T.bodyMd,
-    fontSize: 12,
+    fontSize: 13,
     color: C.onSurfaceVariant,
+    opacity: 0.55,
   },
-  presetTextActive: {
+  barePresetTextActive: {
     color: C.primary,
     fontWeight: '700',
+    opacity: 1,
+  },
+  presetUnderline: {
+    width: 14,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: C.primary,
+    marginTop: 3,
   },
 
-  /* Modals */
+  /* Bare Modals */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
   modalDismissArea: {
     position: 'absolute',
@@ -771,87 +751,70 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 320,
     backgroundColor: C.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    gap: 16,
-    elevation: 24,
+    gap: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   modalTitle: { ...T.headlineMd, fontSize: 20, color: C.onSurface },
-  modalSub: {
-    ...T.bodyMd,
-    fontSize: 12,
-    color: C.onSurfaceVariant,
-    textAlign: 'center',
-    marginTop: -8,
-  },
 
   timeEditGrid: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    marginVertical: 8,
+    marginVertical: 4,
   },
-  timeCol: { alignItems: 'center', gap: 6 },
-  stepperBtn: {
-    width: 44,
-    height: 32,
-    backgroundColor: C.surfaceHigh,
-    borderRadius: 8,
+  timeCol: { alignItems: 'center', gap: 2 },
+  bareStepperBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
-  stepperArrow: { fontSize: 12, color: C.onSurface },
-  timeInput: {
-    width: 60,
-    height: 54,
-    backgroundColor: C.surfaceLowest,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.primary,
-    color: C.onSurface,
-    fontSize: 24,
+  bareStepperArrow: { fontSize: 14, color: C.onSurfaceVariant },
+  bareTimeInput: {
+    width: 68,
+    height: 58,
+    color: '#ffffff',
+    fontSize: 44,
     fontWeight: '700',
     textAlign: 'center',
     fontFamily: 'SpaceMono',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,196,153,0.4)',
+    padding: 0,
   },
-  unitLabel: { ...T.label, fontSize: 9, color: C.onSurfaceVariant },
   colonSeparator: {
-    fontSize: 28,
+    fontSize: 40,
     fontWeight: '700',
-    color: C.onSurface,
-    marginBottom: 20,
+    color: C.onSurfaceVariant,
+    opacity: 0.5,
   },
 
-  periodCol: { gap: 6, marginBottom: 20 },
-  periodBtn: {
-    width: 48,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: C.surfaceHigh,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  barePeriodCol: {
+    gap: 12,
+    marginLeft: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  periodBtnActive: {
-    backgroundColor: C.primary,
-    borderColor: C.primary,
+  barePeriodBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
-  periodBtnText: {
+  barePeriodText: {
     ...T.label,
-    fontSize: 12,
+    fontSize: 16,
     color: C.onSurfaceVariant,
+    opacity: 0.35,
   },
-  periodBtnTextActive: {
-    color: C.onPrimary,
+  barePeriodTextActive: {
+    color: C.primary,
+    opacity: 1,
     fontWeight: '700',
   },
 
@@ -859,22 +822,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     width: '100%',
-    marginTop: 8,
+    marginTop: 4,
   },
   modalCancelBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 100,
-    backgroundColor: C.surfaceHigh,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCancelText: { ...T.bodyMd, color: C.onSurfaceVariant },
   modalSaveBtn: {
-    flex: 1,
+    flex: 1.2,
     paddingVertical: 12,
     borderRadius: 100,
     backgroundColor: C.primary,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalSaveText: {
     ...T.bodyMd,
@@ -885,28 +848,23 @@ const styles = StyleSheet.create({
   /* Month Picker Modal */
   monthModalContent: {
     width: '100%',
-    maxWidth: 320,
-    maxHeight: 450,
+    maxWidth: 300,
+    maxHeight: 440,
     backgroundColor: C.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 24,
     padding: 20,
     alignItems: 'center',
     gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   monthListScroll: { width: '100%' },
   monthListItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 4,
-  },
-  monthListItemActive: {
-    backgroundColor: 'rgba(255,196,153,0.12)',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
   monthListItemText: { ...T.bodyMd, color: C.onSurface },
   monthListItemTextActive: { color: C.primary, fontWeight: '700' },
@@ -914,11 +872,9 @@ const styles = StyleSheet.create({
   modalCloseBtn: {
     width: '100%',
     paddingVertical: 10,
-    borderRadius: 100,
-    backgroundColor: C.surfaceHigh,
     alignItems: 'center',
   },
-  modalCloseBtnText: { ...T.bodyMd, color: C.onSurface },
+  modalCloseBtnText: { ...T.bodyMd, color: C.onSurfaceVariant },
 
   /* Footer */
   footer: {

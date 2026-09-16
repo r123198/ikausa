@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     PlayfairDisplay: require('@/assets/fonts/Playfair_Display/PlayfairDisplay-VariableFont_wght.ttf'),
     HankenGrotesk: require('@/assets/fonts/Hanken_Grotesk/HankenGrotesk-VariableFont_wght.ttf'),
     SpaceMono: require('@/assets/fonts/Space_Mono/SpaceMono-Regular.ttf'),
@@ -14,10 +14,10 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
+    if (loaded || error) SplashScreen.hideAsync();
+  }, [loaded, error]);
 
-  if (!loaded) return null;
+  if (!loaded && !error) return null;
 
   return (
     <ThemeProvider value={DarkTheme}>
