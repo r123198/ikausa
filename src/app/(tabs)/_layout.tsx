@@ -1,80 +1,61 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { C } from '@/constants/theme';
+import { Icon } from '@/components/icon';
+import { C, Fonts } from '@/constants/theme';
 
-function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
+const TAB_BAR_HEIGHT = 60;
+
+function CreateIcon() {
   return (
-    <View style={styles.tabItem}>
-      <Text style={[styles.tabGlyph, focused && styles.tabGlyphActive]}>{glyph}</Text>
+    <View style={styles.createIcon}>
+      <Icon ios="plus" material="add" size={20} color={C.onPrimary} />
     </View>
   );
 }
 
-function CreateFab() {
-  const router = useRouter();
-  return (
-    <Pressable
-      style={styles.fab}
-      onPress={() => router.push('/create/event-name')}>
-      <Text style={styles.fabIcon}>+</Text>
-    </Pressable>
-  );
-}
-
 export default function TabLayout() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 0 }],
+        tabBarStyle: [styles.tabBar, { height: TAB_BAR_HEIGHT + insets.bottom }],
         tabBarActiveTintColor: C.primary,
         tabBarInactiveTintColor: C.onSurfaceVariant,
-        tabBarShowLabel: false,
-        tabBarBackground: () => <View style={styles.tabBarBg} />,
+        tabBarLabelStyle: styles.tabLabel,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="⌂" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="rolls"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="◈" focused={focused} />
-          ),
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Icon ios="house.fill" material="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="create-placeholder"
         options={{
-          tabBarIcon: () => <CreateFab />,
-          tabBarLabel: () => null,
+          title: 'New roll',
+          tabBarIcon: () => <CreateIcon />,
+          tabBarActiveTintColor: C.onSurface,
+          tabBarInactiveTintColor: C.onSurface,
         }}
         listeners={{
-          tabPress: (e) => e.preventDefault(),
-        }}
-      />
-      <Tabs.Screen
-        name="invite"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="↗" focused={focused} />
-          ),
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/create/event-name');
+          },
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon glyph="◎" focused={focused} />
+          title: 'Profile',
+          tabBarIcon: ({ color }) => (
+            <Icon ios="person.crop.circle" material="account_circle" color={color} />
           ),
         }}
       />
@@ -84,64 +65,22 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
-    bottom: 20,
-    left: 16,
-    right: 16,
-    marginHorizontal: 16,
-    backgroundColor: `${C.surface}ee`,
-    borderRadius: 100,
-    borderTopWidth: 0,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    height: 64,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: C.surfaceLow,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.outlineVariant,
   },
-  tabBarBg: {
-    flex: 1,
-    backgroundColor: 'transparent',
+  tabLabel: {
+    fontFamily: Fonts.hanken,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
   },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 48,
-    height: 48,
-  },
-  tabGlyph: {
-    fontSize: 26,
-    color: C.onSurfaceVariant,
-    opacity: 0.6,
-  },
-  tabGlyphActive: {
-    color: C.primaryFixed,
-    opacity: 1,
-  },
-  fab: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  createIcon: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    borderWidth: 4,
-    borderColor: C.background,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: C.onPrimary,
-    lineHeight: 32,
-    fontWeight: '300',
   },
 });

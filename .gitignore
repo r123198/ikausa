@@ -41,3 +41,18 @@ example
 # generated native folders
 /ios
 /android
+
+# AI assistant / local tooling
+.claude/
+
+# editor
+.idea/
+
+# env files
+.env
+
+# logs and test output
+*.log
+coverage/
+test-results/
+playwright-report/

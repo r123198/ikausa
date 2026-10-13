@@ -5,7 +5,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StepDots } from '@/components/step-dots';
 import { C, T } from '@/constants/theme';
+import { RevealOption, useCreateEvent } from '@/context/create-event-context';
 
 const SAMPLES = [
   require('@/assets/images/samples/trvl_1.jpg'),
@@ -245,7 +247,7 @@ function renderFallbackIcon(id: string, color: string) {
 
 export default function RevealSettingsScreen() {
   const router = useRouter();
-  const [selected, setSelected] = useState('during');
+  const { revealOption, setRevealOption } = useCreateEvent();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -283,7 +285,7 @@ export default function RevealSettingsScreen() {
         {/* Options Grid with Outlined Flutter Icons & Refined Color Design */}
         <View style={styles.optionsGrid}>
           {OPTIONS.map((opt) => {
-            const isActive = selected === opt.id;
+            const isActive = revealOption === opt.id;
             const iconColor = isActive ? C.primary : C.outline;
 
             return (
@@ -293,7 +295,7 @@ export default function RevealSettingsScreen() {
                   styles.optCard,
                   isActive && styles.optCardActive,
                 ]}
-                onPress={() => setSelected(opt.id)}>
+                onPress={() => setRevealOption(opt.id as RevealOption)}>
                 {/* Outlined Icon Container */}
                 <View
                   style={[
@@ -326,14 +328,10 @@ export default function RevealSettingsScreen() {
 
       {/* Footer Navigation */}
       <View style={styles.footer}>
-        <View style={styles.dots}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.dot, i === 2 && styles.dotActive]} />
-          ))}
-        </View>
+        <StepDots step={3} />
         <Pressable
           style={styles.nextBtn}
-          onPress={() => router.push('/create/guest-settings')}>
+          onPress={() => router.push('/create/export-window')}>
           <Text style={styles.nextBtnLabel}>Next</Text>
           <Text style={styles.nextBtnIcon}>→</Text>
         </Pressable>
@@ -486,19 +484,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 48,
     paddingTop: 16,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: C.surfaceHighest,
-  },
-  dotActive: {
-    backgroundColor: C.onSurface,
   },
   nextBtn: {
     flexDirection: 'row',

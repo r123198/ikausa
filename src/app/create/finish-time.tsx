@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StepDots } from '@/components/step-dots';
 import { C, T } from '@/constants/theme';
+import { useCreateEvent } from '@/context/create-event-context';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -51,6 +53,7 @@ const TIME_PRESETS = ['11:59 PM', '2:00 AM', '6:00 PM', '10:00 PM'];
 
 export default function FinishTimeScreen() {
   const router = useRouter();
+  const { finishDate, setFinishDate, finishTime, setFinishTime } = useCreateEvent();
 
   // Current real-world date
   const now = useMemo(() => new Date(), []);
@@ -63,20 +66,8 @@ export default function FinishTimeScreen() {
   const maxMonth = 11;
 
   // Viewing month/year in calendar
-  const [viewYear, setViewYear] = useState(currentYear);
-  const [viewMonth, setViewMonth] = useState(currentMonth);
-
-  // Selected date
-  const [selectedDate, setSelectedDate] = useState({
-    year: currentYear,
-    month: currentMonth,
-    day: currentDay,
-  });
-
-  // Selected time
-  const [hour, setHour] = useState('11');
-  const [minute, setMinute] = useState('59');
-  const [period, setPeriod] = useState<'AM' | 'PM'>('PM');
+  const [viewYear, setViewYear] = useState(finishDate.year);
+  const [viewMonth, setViewMonth] = useState(finishDate.month);
 
   // Modals
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -168,15 +159,15 @@ export default function FinishTimeScreen() {
     return list;
   }, [currentYear, currentMonth, maxYear, maxMonth]);
 
-  const formattedTime = `${parseInt(hour, 10) || 12}:${(parseInt(minute, 10) || 0)
+  const formattedTime = `${parseInt(finishTime.hour, 10) || 12}:${(parseInt(finishTime.minute, 10) || 0)
     .toString()
-    .padStart(2, '0')} ${period}`;
+    .padStart(2, '0')} ${finishTime.period}`;
 
   // Time modal open handler
   const openTimeModal = () => {
-    setTempHour(hour);
-    setTempMinute(minute.padStart(2, '0'));
-    setTempPeriod(period);
+    setTempHour(finishTime.hour);
+    setTempMinute(finishTime.minute.padStart(2, '0'));
+    setTempPeriod(finishTime.period);
     setShowTimeModal(true);
   };
 
@@ -190,9 +181,14 @@ export default function FinishTimeScreen() {
     if (isNaN(m) || m < 0) m = 0;
     if (m > 59) m = 59;
 
-    setHour(h.toString());
-    setMinute(m.toString().padStart(2, '0'));
-    setPeriod(tempPeriod);
+    const formattedHour = h.toString();
+    const formattedMinute = m.toString().padStart(2, '0');
+
+    setFinishTime({
+      hour: formattedHour,
+      minute: formattedMinute,
+      period: tempPeriod,
+    });
     setShowTimeModal(false);
   };
 
@@ -200,9 +196,8 @@ export default function FinishTimeScreen() {
   const applyPreset = (presetStr: string) => {
     const [timePart, p] = presetStr.split(' ');
     const [h, m] = timePart.split(':');
-    setHour(h);
-    setMinute(m);
-    setPeriod(p as 'AM' | 'PM');
+    const periodVal = p as 'AM' | 'PM';
+    setFinishTime({ hour: h, minute: m, period: periodVal });
   };
 
   // Steppers for modal time editor
@@ -308,23 +303,24 @@ export default function FinishTimeScreen() {
                   day === currentDay;
 
                 const isSelected =
-                  selectedDate.year === viewYear &&
-                  selectedDate.month === viewMonth &&
-                  selectedDate.day === day;
+                  finishDate.year === viewYear &&
+                  finishDate.month === viewMonth &&
+                  finishDate.day === day;
 
                 return (
                   <Pressable
                     key={di}
                     style={styles.dayCell}
                     disabled={isPast}
-                    onPress={() =>
-                      !isPast &&
-                      setSelectedDate({
-                        year: viewYear,
-                        month: viewMonth,
-                        day,
-                      })
-                    }>
+                    onPress={() => {
+                      if (!isPast) {
+                        setFinishDate({
+                          year: viewYear,
+                          month: viewMonth,
+                          day,
+                        });
+                      }
+                    }}>
                     {isSelected ? (
                       <View style={styles.selectedCircle}>
                         <Text style={styles.selectedDayText}>{day}</Text>
@@ -548,14 +544,7 @@ export default function FinishTimeScreen() {
 
       {/* Footer Navigation */}
       <View style={styles.footer}>
-        <View style={styles.dots}>
-          <View style={styles.dot} />
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-        </View>
+        <StepDots step={2} />
         <Pressable
           style={styles.nextBtn}
           onPress={() => router.push('/create/reveal-settings')}>
@@ -692,7 +681,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   bareTimeText: {
-    fontFamily: 'SpaceMono',
+    fontFamily: 'HankenGrotesk',
     fontSize: 22,
     fontWeight: '700',
     color: C.primary,
@@ -784,7 +773,7 @@ const styles = StyleSheet.create({
     fontSize: 44,
     fontWeight: '700',
     textAlign: 'center',
-    fontFamily: 'SpaceMono',
+    fontFamily: 'HankenGrotesk',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,196,153,0.4)',
     padding: 0,
@@ -885,14 +874,6 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     paddingTop: 16,
   },
-  dots: { flexDirection: 'row', gap: 8 },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: `${C.onSurfaceVariant}33`,
-  },
-  dotActive: { backgroundColor: C.onSurface },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',

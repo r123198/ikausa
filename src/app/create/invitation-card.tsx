@@ -1,12 +1,11 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   Modal,
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -14,20 +13,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { toQR } from 'toqr';
 
+import { Icon } from '@/components/icon';
+import { PRESET_COVERS } from '@/constants/covers';
 import { C, Fonts, T } from '@/constants/theme';
-
-const INVITE_CODE = 'LOLA-2024';
-const INVITE_URL = `https://ikausa.app/join/${INVITE_CODE}`;
-
-const PRESET_COVERS = [
-  { id: '1', title: 'Beach Gathering', src: require('@/assets/images/samples/trvl_4.jpg') },
-  { id: '2', title: 'Lake Boat', src: require('@/assets/images/samples/trvl_1.jpg') },
-  { id: '3', title: 'Sunset Plane', src: require('@/assets/images/samples/trvl_2.jpg') },
-  { id: '4', title: 'Mountain Lake', src: require('@/assets/images/samples/trvl_3.jpg') },
-  { id: '5', title: 'Coastal View', src: require('@/assets/images/samples/trvl_5.jpg') },
-];
+import { useCreateEvent, type CoverChoice } from '@/context/create-event-context';
+import { timeUntil } from '@/lib/format';
 
 // Gradual fade starting from upper-middle down to solid dark velvet (#131313) at bottom
 const FADE_SLICE_COUNT = 32;
@@ -41,36 +32,19 @@ const FADE_SLICES = Array.from({ length: FADE_SLICE_COUNT }).map((_, i) => {
 
 export default function InvitationCardScreen() {
   const router = useRouter();
+  const { formattedName, cover, setCover, endsAt } = useCreateEvent();
   const { height: screenHeight } = useWindowDimensions();
   const heroTopPadding = Math.max(220, Math.round(screenHeight * 0.33));
-  const [currentCover, setCurrentCover] = useState<any>(PRESET_COVERS[0].src);
+  const currentCover =
+    cover.kind === 'preset'
+      ? (PRESET_COVERS.find((p) => p.id === cover.id) ?? PRESET_COVERS[0]).src
+      : { uri: cover.uri };
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
 
-  // Generate real QR code matrix using toqr
-  const qrMatrix = useMemo(() => {
-    try {
-      return toQR(INVITE_URL);
-    } catch {
-      return new Uint8Array(0);
-    }
-  }, []);
-
-  const qrSize = Math.sqrt(qrMatrix.length);
-  const moduleSize = 4.2;
-
-  // Share invitation card via native Share sheet
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        title: "Join 'Handaan ni Lola' on Ikausa!",
-        message: `📸 You're invited to join my film roll 'Handaan ni Lola' on Ikausa!\n\nUse invite code: ${INVITE_CODE}\nOr join directly: ${INVITE_URL}\n\nLet's capture analog memories together!`,
-        url: INVITE_URL,
-      });
-    } catch (error) {
-      console.error('Error sharing invitation card:', error);
-    }
+  const updateCover = (next: CoverChoice) => {
+    setCover(next);
   };
 
   // Upload image handler
@@ -86,7 +60,7 @@ export default function InvitationCardScreen() {
             const reader = new FileReader();
             reader.onload = (event) => {
               if (event.target?.result) {
-                setCurrentCover({ uri: event.target.result as string });
+                updateCover({ kind: 'uri', uri: event.target.result as string });
                 setIsPickerOpen(false);
               }
             };
@@ -103,11 +77,15 @@ export default function InvitationCardScreen() {
   };
 
   const handleApplyUrl = () => {
-    if (urlInput.trim()) {
-      setCurrentCover({ uri: urlInput.trim() });
-      setUrlInput('');
-      setIsPickerOpen(false);
+    const url = urlInput.trim();
+    if (!/^https:\/\/\S+$/i.test(url)) {
+      setUrlError('Enter an image link that starts with https://');
+      return;
     }
+    updateCover({ kind: 'uri', uri: url });
+    setUrlInput('');
+    setUrlError(null);
+    setIsPickerOpen(false);
   };
 
   return (
@@ -125,8 +103,13 @@ export default function InvitationCardScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Bare top navigation row: Only the bare back button */}
         <View style={styles.header}>
-          <Pressable style={styles.bareBackBtn} onPress={() => router.back()} hitSlop={14}>
-            <Text style={styles.bareBackIcon}>←</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.bareBackBtn}
+            onPress={() => router.back()}
+            hitSlop={14}>
+            <Icon ios="chevron.left" material="arrow_back" size={22} color="#ffffff" />
           </Pressable>
         </View>
 
@@ -137,7 +120,7 @@ export default function InvitationCardScreen() {
           {/* Upper Hero: Pulled down with Title label at the center */}
           <View style={styles.upperHero}>
             {/* Centered Serif Title */}
-            <Text style={styles.eventTitle}>Handaan ni{'\n'}Lola</Text>
+            <Text style={styles.eventTitle}>{formattedName}</Text>
 
             {/* 3 Key Stats: Moments, Left, People */}
             <View style={styles.statsRow}>
@@ -147,56 +130,14 @@ export default function InvitationCardScreen() {
               </View>
 
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>4d 2h</Text>
+                <Text style={styles.statNumber}>{timeUntil(endsAt)}</Text>
                 <Text style={styles.statLabel}>Left</Text>
               </View>
 
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>1</Text>
-                <Text style={styles.statLabel}>People ›</Text>
+                <Text style={styles.statLabel}>People</Text>
               </View>
-            </View>
-
-            {/* Action Buttons Row: White Camera Pill + QR Code + Download/Share */}
-            <View style={styles.actionRow}>
-              {/* Primary Action: White camera pill button */}
-              <Pressable
-                style={styles.cameraPillBtn}
-                onPress={() => setIsPickerOpen(true)}
-                hitSlop={4}>
-                <View style={styles.cameraIcon}>
-                  <View style={styles.cameraIconTopNotch} />
-                  <View style={styles.cameraIconBody}>
-                    <View style={styles.cameraIconLens} />
-                    <View style={styles.cameraIconFlash} />
-                  </View>
-                </View>
-              </Pressable>
-
-              {/* QR Code Action Button */}
-              <Pressable
-                style={styles.squareGlassBtn}
-                onPress={() => setShowQrModal(true)}
-                hitSlop={8}>
-                <View style={styles.qrIconWrap}>
-                  <View style={styles.qrIconRow}>
-                    <View style={styles.qrIconSquare} />
-                    <View style={styles.qrIconSquare} />
-                  </View>
-                  <View style={styles.qrIconRow}>
-                    <View style={styles.qrIconSquare} />
-                    <View style={styles.qrIconSquare} />
-                  </View>
-                </View>
-              </Pressable>
-
-              {/* Share / Download Action Button */}
-              <Pressable style={styles.squareGlassBtn} onPress={handleShare} hitSlop={8}>
-                <View style={styles.downloadIconWrap}>
-                  <Text style={styles.downloadArrow}>↓</Text>
-                  <View style={styles.downloadTray} />
-                </View>
-              </Pressable>
             </View>
           </View>
         </ScrollView>
@@ -218,62 +159,6 @@ export default function InvitationCardScreen() {
           </Pressable>
         </View>
       </SafeAreaView>
-
-      {/* Real Functional QR Code Modal */}
-      <Modal
-        visible={showQrModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowQrModal(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowQrModal(false)}>
-          <Pressable style={styles.qrModalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalTopBar}>
-              <Text style={styles.qrModalTitle}>Scan to Join Roll</Text>
-              <Pressable
-                style={styles.modalCloseBtn}
-                onPress={() => setShowQrModal(false)}
-                hitSlop={12}>
-                <Text style={styles.modalCloseText}>✕</Text>
-              </Pressable>
-            </View>
-
-            {/* Real QR Code Matrix */}
-            <View style={styles.qrWhiteContainer}>
-              {qrSize > 0 ? (
-                <View style={styles.qrGrid}>
-                  {Array.from({ length: qrSize }).map((_, y) => (
-                    <View key={y} style={styles.qrRow}>
-                      {Array.from({ length: qrSize }).map((_, x) => (
-                        <View
-                          key={x}
-                          style={{
-                            width: moduleSize,
-                            height: moduleSize,
-                            backgroundColor: qrMatrix[y * qrSize + x]
-                              ? '#131313'
-                              : '#ffffff',
-                          }}
-                        />
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.qrFallbackText}>▦</Text>
-              )}
-            </View>
-
-            <Text style={styles.qrModalSubtitle}>
-              Guests can scan this QR code to join Handaan ni Lola
-            </Text>
-
-            <View style={styles.inviteCodeBadge}>
-              <Text style={styles.inviteCodeLabel}>Invite Code</Text>
-              <Text style={styles.inviteCodeValue}>{INVITE_CODE}</Text>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Upload Image / Change Cover Modal */}
       <Modal
@@ -314,7 +199,7 @@ export default function InvitationCardScreen() {
                   key={preset.id}
                   style={styles.presetThumbWrap}
                   onPress={() => {
-                    setCurrentCover(preset.src);
+                    updateCover({ kind: 'preset', id: preset.id });
                     setIsPickerOpen(false);
                   }}>
                   <Image source={preset.src} style={styles.presetThumbImg} contentFit="cover" />
@@ -341,6 +226,7 @@ export default function InvitationCardScreen() {
                 <Text style={styles.urlApplyBtnText}>Apply</Text>
               </Pressable>
             </View>
+            {urlError && <Text style={styles.urlError}>{urlError}</Text>}
           </Pressable>
         </Pressable>
       </Modal>
@@ -349,6 +235,7 @@ export default function InvitationCardScreen() {
 }
 
 const styles = StyleSheet.create({
+  urlError: { ...T.bodyMd, fontSize: 13, color: C.error },
   container: {
     flex: 1,
     backgroundColor: C.background,
@@ -393,13 +280,6 @@ const styles = StyleSheet.create({
   bareBackBtn: {
     padding: 6,
     alignSelf: 'flex-start',
-  },
-  bareBackIcon: {
-    fontSize: 26,
-    color: '#ffffff',
-    textShadowColor: 'rgba(0, 0, 0, 0.85)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
   },
 
   scroll: {
@@ -459,122 +339,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
 
-  /* Action Buttons Row */
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    width: '100%',
-    paddingTop: 8,
-  },
-  cameraPillBtn: {
-    flex: 1,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  cameraIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraIconTopNotch: {
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#111111',
-    borderTopLeftRadius: 1.5,
-    borderTopRightRadius: 1.5,
-  },
-  cameraIconBody: {
-    width: 24,
-    height: 17,
-    backgroundColor: '#111111',
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  cameraIconLens: {
-    width: 8.5,
-    height: 8.5,
-    borderRadius: 4.5,
-    borderWidth: 1.6,
-    borderColor: '#ffffff',
-  },
-  cameraIconFlash: {
-    position: 'absolute',
-    top: 2.5,
-    right: 3.5,
-    width: 2.5,
-    height: 2.5,
-    borderRadius: 1.5,
-    backgroundColor: '#ffffff',
-  },
-
-  squareGlassBtn: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    backgroundColor: 'rgba(28, 28, 28, 0.75)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-
-  /* QR Icon Vector */
-  qrIconWrap: {
-    width: 20,
-    height: 20,
-    justifyContent: 'space-between',
-  },
-  qrIconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  qrIconSquare: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    borderWidth: 1.6,
-    borderColor: '#ffffff',
-  },
-
-  /* Download / Share Icon Vector */
-  downloadIconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 22,
-    height: 22,
-  },
-  downloadArrow: {
-    color: '#ffffff',
-    fontSize: 14,
-    lineHeight: 14,
-    fontWeight: '600',
-    marginTop: -2,
-  },
-  downloadTray: {
-    width: 16,
-    height: 5,
-    borderBottomWidth: 1.8,
-    borderLeftWidth: 1.8,
-    borderRightWidth: 1.8,
-    borderColor: '#ffffff',
-    borderRadius: 1,
-    marginTop: 2,
-  },
-
   /* Bottom Bar */
   bottomBar: {
     flexDirection: 'row',
@@ -632,21 +396,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  qrModalCard: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: C.surface,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    gap: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-  },
   modalTopBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -664,56 +413,6 @@ const styles = StyleSheet.create({
   modalCloseText: {
     fontSize: 18,
     color: C.onSurfaceVariant,
-  },
-  qrWhiteContainer: {
-    backgroundColor: '#ffffff',
-    padding: 14,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  qrGrid: {
-    backgroundColor: '#ffffff',
-  },
-  qrRow: {
-    flexDirection: 'row',
-  },
-  qrFallbackText: {
-    fontSize: 64,
-    color: '#111111',
-  },
-  qrModalSubtitle: {
-    ...T.bodyMd,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  },
-  inviteCodeBadge: {
-    width: '100%',
-    backgroundColor: C.surfaceHigh,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  inviteCodeLabel: {
-    ...T.label,
-    fontSize: 11,
-    color: C.onSurfaceVariant,
-    textTransform: 'uppercase',
-  },
-  inviteCodeValue: {
-    fontFamily: Fonts.mono,
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.primary,
-    letterSpacing: 2,
   },
 
   /* Change Cover Modal */

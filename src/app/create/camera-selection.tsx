@@ -5,40 +5,16 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { C, Fonts, T } from '@/constants/theme';
+import { CAMERAS, useCreateEvent } from '@/context/create-event-context';
 
-const CAMERAS = [
-  {
-    id: 'disposable',
-    name: 'Disposable',
-    label: 'Classic',
-    desc: 'Authentic grainy film look with flash',
-    shots: 27,
-    image: require('@/assets/images/samples/trvl_1.jpg'),
-  },
-  {
-    id: 'polaroid',
-    name: 'Polaroid',
-    label: 'Instant',
-    desc: 'Square format with border and faded tones',
-    shots: 10,
-    image: require('@/assets/images/samples/trvl_2.jpg'),
-  },
-  {
-    id: 'pinhole',
-    name: 'Pinhole',
-    label: 'Artistic',
-    desc: 'Dreamy vignette with long exposure look',
-    shots: 12,
-    image: require('@/assets/images/samples/trvl_3.jpg'),
-  },
-];
+export { CAMERAS };
 
 export default function CameraSelectionScreen() {
   const router = useRouter();
-  const [selected, setSelected] = useState('disposable');
+  const { cameraId, setCameraId } = useCreateEvent();
 
   const selectedCam =
-    CAMERAS.find((cam) => cam.id === selected) || CAMERAS[0];
+    CAMERAS.find((cam) => cam.id === cameraId) || CAMERAS[0];
 
   return (
     <View style={styles.container}>
@@ -80,7 +56,7 @@ export default function CameraSelectionScreen() {
         <View style={styles.bottomSection}>
           <View style={styles.optionsRow}>
             {CAMERAS.map((cam) => {
-              const isActive = selected === cam.id;
+              const isActive = cameraId === cam.id;
               return (
                 <Pressable
                   key={cam.id}
@@ -88,7 +64,7 @@ export default function CameraSelectionScreen() {
                     styles.cameraCard,
                     isActive && styles.cameraCardActive,
                   ]}
-                  onPress={() => setSelected(cam.id)}>
+                  onPress={() => setCameraId(cam.id)}>
                   {/* Miniature filter thumbnail */}
                   <View style={styles.thumbnailWrap}>
                     <Image

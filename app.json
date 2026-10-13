@@ -34,6 +34,22 @@
             "imageWidth": 76
           }
         }
+      ],
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ikausa uses your camera to take photos for the rolls you join.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Ikausa saves exported roll photos to your library.",
+          "isAccessMediaLocationEnabled": false
+        }
       ]
     ],
     "experiments": {

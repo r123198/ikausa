@@ -1,395 +1,268 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
+import { InviteSheet } from '@/components/invite-sheet';
+import { Button } from '@/components/ui/button';
+import { ErrorState, LoadingState } from '@/components/ui/screen-state';
+import { useCoverSource } from '@/constants/covers';
 import { C, T } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
+import { useFocusedAsync } from '@/hooks/use-async';
+import { useNow } from '@/hooks/use-now';
+import { eventPhase, fetchMyEvents, shotsLeft, type EventSummary } from '@/lib/events';
+import { formatDate, pluralize, timeUntil } from '@/lib/format';
 
-const SAMPLES = [
-  require('@/assets/images/samples/trvl_1.jpg'),
-  require('@/assets/images/samples/trvl_2.jpg'),
-  require('@/assets/images/samples/trvl_3.jpg'),
-  require('@/assets/images/samples/trvl_4.jpg'),
-  require('@/assets/images/samples/trvl_5.jpg'),
-];
-
-function Header() {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        <Text style={styles.headerIcon}>⬡</Text>
-        <Text style={styles.headerTitle}>Handaan ni Lola</Text>
-      </View>
-      <Pressable style={styles.exportBtn}>
-        <Text style={styles.exportBtnLabel}>Export Roll</Text>
-      </Pressable>
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      {children}
     </View>
   );
 }
 
-interface CollageCardProps {
-  source: any;
-  title: string;
-  height?: number;
-  flex?: number;
-  aspectRatio?: number;
-  style?: any;
-  onPress?: () => void;
-}
-
-function CollageCard({
-  source,
-  title,
-  height,
-  flex,
-  aspectRatio,
-  style,
-  onPress,
-}: CollageCardProps) {
+function ProgressBar({ value, max }: { value: number; max: number }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.collageCard,
-        height !== undefined && { height },
-        flex !== undefined && { flex },
-        aspectRatio !== undefined && { aspectRatio },
-        pressed && styles.cardPressed,
-        style,
-      ]}
-      onPress={onPress}>
-      <Image source={source} style={styles.cardImage} contentFit="cover" />
-      <View style={styles.scrimOverlay}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
-    </Pressable>
+    <View style={styles.progressTrack}>
+      <View style={[styles.progressFill, { width: `${pct}%` }]} />
+    </View>
   );
 }
 
-function HeroMemoryCard() {
+function Cover({ cover, style }: { cover: string | null; style: object }) {
+  const source = useCoverSource(cover);
+  return source ? (
+    <Image source={source} style={style} contentFit="cover" />
+  ) : (
+    <View style={[style, styles.coverFallback]} />
+  );
+}
+
+function shotsLabel(event: EventSummary): string {
+  const left = shotsLeft(event);
+  return left === null ? 'Unlimited shots' : `${pluralize(left, 'shot')} left`;
+}
+
+function NowShootingCard({ event, onInvite }: { event: EventSummary; onInvite: () => void }) {
+  const router = useRouter();
+  const isOutOfShots = shotsLeft(event) === 0;
+
+  return (
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${event.name}`}
+        style={({ pressed }) => pressed && styles.pressed}
+        onPress={() => router.push(`/roll/${event.id}`)}>
+        <Cover cover={event.cover} style={styles.shootingImage} />
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {event.name}
+          </Text>
+          <Text style={styles.cardMeta}>
+            {shotsLabel(event)} · {pluralize(event.memberCount, 'person', 'people')} ·{' '}
+            {timeUntil(event.endsAt)} left
+          </Text>
+          {event.shotsPerPerson !== null && (
+            <ProgressBar value={event.myShotCount} max={event.shotsPerPerson} />
+          )}
+        </View>
+      </Pressable>
+
+      <View style={styles.actionRow}>
+        <Button
+          label={isOutOfShots ? 'No shots left' : 'Shoot'}
+          disabled={isOutOfShots}
+          style={styles.flex}
+          icon={<Icon ios="camera.fill" material="photo_camera" size={20} color={C.onPrimary} />}
+          onPress={() => router.push(`/camera/${event.id}`)}
+        />
+        <Button
+          label="Invite"
+          variant="secondary"
+          icon={<Icon ios="person.badge.plus" material="person_add" size={20} color={C.onSurface} />}
+          onPress={onInvite}
+        />
+      </View>
+    </View>
+  );
+}
+
+function StartRollCard() {
+  const router = useRouter();
+
+  return (
+    <View style={[styles.card, styles.cardBody]}>
+      <Text style={styles.cardTitle}>No roll in progress</Text>
+      <Text style={styles.cardMeta}>
+        Start a roll for your next ganap and invite friends to shoot with you.
+      </Text>
+      <Button
+        label="Start a roll"
+        style={styles.startBtn}
+        icon={<Icon ios="plus" material="add" size={20} color={C.onPrimary} />}
+        onPress={() => router.push('/create/event-name')}
+      />
+    </View>
+  );
+}
+
+function ReadyCard({ event }: { event: EventSummary }) {
   const router = useRouter();
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.heroCard,
-        pressed && styles.cardPressed,
-      ]}
-      onPress={() => router.push('/gallery/bora-trip')}>
-      <Image source={SAMPLES[0]} style={styles.heroImg} contentFit="cover" />
-
-      {/* Decorative film perforations along top edge */}
-      <View style={styles.heroPerfTrack}>
-        {[...Array(8)].map((_, i) => (
-          <View key={i} style={styles.heroPerfHole} />
-        ))}
-      </View>
-
-      {/* In-image label scrim */}
-      <View style={styles.heroScrim}>
-        <Text style={styles.heroTitle} numberOfLines={1}>
-          Bora Trip 2024
-        </Text>
+      accessibilityRole="button"
+      accessibilityLabel={`View ${event.name} photos`}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={() => router.push(`/roll/${event.id}`)}>
+      <Cover cover={event.cover} style={styles.readyImage} />
+      <View style={[styles.cardBody, styles.readyBody]}>
+        <View style={styles.readyText}>
+          <Text style={styles.readyTitle} numberOfLines={1}>
+            {event.name}
+          </Text>
+          <Text style={styles.readyMeta}>
+            {pluralize(event.photoCount, 'photo')} · Export until {formatDate(event.exportUntil)}
+          </Text>
+        </View>
+        <View style={styles.viewLink}>
+          <Text style={styles.viewLinkLabel}>View</Text>
+          <Icon ios="chevron.right" material="chevron_right" size={14} color={C.primary} />
+        </View>
       </View>
     </Pressable>
   );
 }
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const { session } = useAuth();
+  const { data: events, error, isLoading, reload } = useFocusedAsync(fetchMyEvents, []);
+  const [inviteEvent, setInviteEvent] = useState<EventSummary | null>(null);
+  const now = useNow();
+
+  const displayName = session?.user.user_metadata.display_name as string | undefined;
+
+  if (!events && isLoading) return <LoadingState />;
+  if (!events) return <ErrorState message={error ?? 'Unknown error'} onRetry={reload} />;
+
+  const live = events.filter((e) => eventPhase(e, now) === 'live');
+  const ready = events.filter((e) => eventPhase(e, now) === 'ready');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <Header />
-
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
-        {/* Featured Hero Memory */}
-        <HeroMemoryCard />
-
-        {/* Functional Button in gap */}
-        <View style={styles.functionalRow}>
-          <Pressable
-            style={styles.functionalPill}
-            onPress={() => router.push('/gallery/bora-trip')}>
-            <Text style={styles.functionalPillText}>View Roll →</Text>
-          </Pressable>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={reload} tintColor={C.primary} />
+        }>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>
+            {displayName ? `Kumusta, ${displayName}` : 'Kumusta'}
+          </Text>
+          <Text style={styles.subtitle}>Here's what's happening with your rolls.</Text>
         </View>
 
-        {/* Uneven Block 1: Tall Portrait (Left) + 2 Stacked Cards (Right) */}
-        <View style={styles.collageRow}>
-          <CollageCard
-            source={SAMPLES[1]}
-            title="Lola's 80th"
-            flex={1.15}
-            height={290}
-            onPress={() => router.push('/gallery/bora-trip')}
-          />
+        {error && <Text style={styles.inlineError}>{error}</Text>}
 
-          <View style={styles.stackedCol}>
-            <CollageCard
-              source={SAMPLES[2]}
-              title="Feast Table"
-              height={144}
-              onPress={() => router.push('/gallery/bora-trip')}
-            />
-            <CollageCard
-              source={SAMPLES[3]}
-              title="Barkada Toast"
-              height={144}
-              onPress={() => router.push('/gallery/bora-trip')}
-            />
-          </View>
-        </View>
+        <Section title="Now shooting">
+          {live.length === 0 ? (
+            <StartRollCard />
+          ) : (
+            live.map((event) => (
+              <NowShootingCard
+                key={event.id}
+                event={event}
+                onInvite={() => setInviteEvent(event)}
+              />
+            ))
+          )}
+        </Section>
 
-        {/* Panoramic Memory Breaker */}
-        <CollageCard
-          source={SAMPLES[4]}
-          title="Family Gathering at Sunset"
-          height={180}
-          onPress={() => router.push('/gallery/bora-trip')}
-        />
-
-        {/* Uneven Block 2: 2 Stacked Cards (Left) + Tall Portrait (Right) */}
-        <View style={styles.collageRow}>
-          <View style={styles.stackedCol}>
-            <CollageCard
-              source={SAMPLES[0]}
-              title="White Beach"
-              height={144}
-              onPress={() => router.push('/gallery/bora-trip')}
-            />
-            <CollageCard
-              source={SAMPLES[2]}
-              title="Sunset Docks"
-              height={144}
-              onPress={() => router.push('/gallery/bora-trip')}
-            />
-          </View>
-
-          <CollageCard
-            source={SAMPLES[3]}
-            title="Ate's Wedding"
-            flex={1.15}
-            height={290}
-            onPress={() => router.push('/gallery/bora-trip')}
-          />
-        </View>
-
-        {/* Functional Button in gap */}
-        <View style={styles.functionalRow}>
-          <Pressable
-            style={styles.functionalPill}
-            onPress={() => router.push('/gallery/album')}>
-            <Text style={styles.functionalPillText}>View Album →</Text>
-          </Pressable>
-        </View>
-
-        {/* Triplet Row (1:1 tight mosaic) */}
-        <View style={styles.tripletRow}>
-          <CollageCard
-            source={SAMPLES[1]}
-            title="Cebu Walk"
-            flex={1}
-            aspectRatio={1}
-            onPress={() => router.push('/gallery/bora-trip')}
-          />
-          <CollageCard
-            source={SAMPLES[4]}
-            title="Night Market"
-            flex={1}
-            aspectRatio={1}
-            onPress={() => router.push('/gallery/bora-trip')}
-          />
-          <CollageCard
-            source={SAMPLES[2]}
-            title="Island Pier"
-            flex={1}
-            aspectRatio={1}
-            onPress={() => router.push('/gallery/bora-trip')}
-          />
-        </View>
-
-        {/* Closing Full-Bleed Card */}
-        <CollageCard
-          source={SAMPLES[0]}
-          title="Bora Shoreline"
-          height={180}
-          onPress={() => router.push('/gallery/bora-trip')}
-        />
+        {ready.length > 0 && (
+          <Section title="Ready to view">
+            {ready.map((event) => (
+              <ReadyCard key={event.id} event={event} />
+            ))}
+          </Section>
+        )}
       </ScrollView>
+
+      {inviteEvent && (
+        <InviteSheet
+          visible
+          onClose={() => setInviteEvent(null)}
+          eventName={inviteEvent.name}
+          inviteCode={inviteEvent.inviteCode}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.background,
-  },
+  safe: { flex: 1, backgroundColor: C.background },
   scroll: { flex: 1 },
+  flex: { flex: 1 },
   content: {
-    paddingHorizontal: 2,
-    paddingTop: 2,
-    paddingBottom: 110,
-    gap: 2,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 32,
+  },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
+
+  header: { paddingTop: 16, gap: 6 },
+  greeting: { ...T.headlineLgMobile },
+  subtitle: { ...T.bodyMd, color: C.onSurfaceVariant },
+  inlineError: { ...T.bodyMd, fontSize: 14, color: C.error },
+
+  section: { gap: 12 },
+  sectionTitle: {
+    ...T.label,
+    lineHeight: 16,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: C.outline,
   },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: `${C.background}ee`,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIcon: { fontSize: 20, color: C.primary },
-  headerTitle: { ...T.headlineMd, fontSize: 20, color: C.onSurface },
-  exportBtn: {
-    backgroundColor: C.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 100,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-  },
-  exportBtnLabel: {
-    ...T.bodyMd,
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.onPrimary,
-  },
-
-  /* Functional Buttons in the gap */
-  functionalRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  functionalPill: {
-    backgroundColor: 'rgba(32, 31, 31, 0.75)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  functionalPillText: {
-    ...T.bodyMd,
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.primary,
-    letterSpacing: 0.2,
-  },
-
-  /* Hero Memory Card */
-  heroCard: {
-    width: '100%',
-    aspectRatio: 16 / 10,
-    borderRadius: 6,
-    overflow: 'hidden',
+  card: {
     backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    position: 'relative',
-  },
-  heroImg: { width: '100%', height: '100%' },
-  heroPerfTrack: {
-    position: 'absolute',
-    top: 8,
-    left: 10,
-    right: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    opacity: 0.35,
-  },
-  heroPerfHole: {
-    width: 7,
-    height: 7,
-    borderRadius: 1.5,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  heroScrim: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(10,10,10,0.55)',
-  },
-  heroTitle: {
-    ...T.headlineMd,
-    fontSize: 20,
-    color: '#ffffff',
-    textShadowColor: 'rgba(0,0,0,0.85)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-
-  /* Collage Layout - tight 2px hairline gaps */
-  collageRow: {
-    flexDirection: 'row',
-    gap: 2,
-    alignItems: 'stretch',
-  },
-  stackedCol: {
-    flex: 1,
-    gap: 2,
-    justifyContent: 'space-between',
-  },
-  tripletRow: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-
-  /* Collage Card */
-  collageCard: {
-    borderRadius: 4,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: C.surface,
-    position: 'relative',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.06)',
   },
-  cardPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.99 }],
+  coverFallback: { backgroundColor: C.surfaceHigh },
+  cardBody: { padding: 20, gap: 8 },
+  cardTitle: { ...T.headlineMd, fontSize: 24, lineHeight: 30 },
+  cardMeta: { ...T.bodyMd, fontSize: 15, lineHeight: 22, color: C.onSurfaceVariant },
+
+  shootingImage: { width: '100%', height: 180 },
+
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.surfaceHighest,
+    marginTop: 8,
+    overflow: 'hidden',
   },
-  cardImage: { width: '100%', height: '100%' },
-  scrimOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(10,10,10,0.52)',
-  },
-  cardTitle: {
-    ...T.bodyMd,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-    textShadowColor: 'rgba(0,0,0,0.85)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
+  progressFill: { height: '100%', borderRadius: 3, backgroundColor: C.primary },
+
+  actionRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 20 },
+  startBtn: { marginTop: 8 },
+
+  readyImage: { width: '100%', aspectRatio: 16 / 10 },
+  readyBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  readyText: { flex: 1, gap: 4 },
+  readyTitle: { ...T.bodyMd, fontSize: 17, fontWeight: '700' },
+  readyMeta: { ...T.bodyMd, fontSize: 14, lineHeight: 20, color: C.onSurfaceVariant },
+  viewLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  viewLinkLabel: { ...T.bodyMd, fontSize: 15, fontWeight: '700', color: C.primary },
 });
-
-

@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StepDots } from '@/components/step-dots';
 import { C, Fonts, T } from '@/constants/theme';
+import { useCreateEvent } from '@/context/create-event-context';
 
 /**
  * Exchange rate for USD to PHP conversion.
@@ -216,14 +218,19 @@ function HalfIphoneView() {
 
 export default function GuestSettingsScreen() {
   const router = useRouter();
-  const [selectedParticipantId, setSelectedParticipantId] = useState('5');
-  const [selectedShotId, setSelectedShotId] = useState('24');
-  const [visible, setVisible] = useState(true);
+  const {
+    participantTierId,
+    setParticipantTierId,
+    shotOptionId,
+    setShotOptionId,
+    everyoneCanSee,
+    setEveryoneCanSee,
+  } = useCreateEvent();
 
   const currentParticipant =
-    PARTICIPANT_TIERS.find((p) => p.id === selectedParticipantId) || PARTICIPANT_TIERS[0];
+    PARTICIPANT_TIERS.find((p) => p.id === participantTierId) || PARTICIPANT_TIERS[0];
   const currentShot =
-    SHOT_OPTIONS.find((s) => s.id === selectedShotId) || SHOT_OPTIONS[3];
+    SHOT_OPTIONS.find((s) => s.id === shotOptionId) || SHOT_OPTIONS[3];
 
   const prevFrameNum =
     currentShot.value === 'unlimited'
@@ -274,12 +281,12 @@ export default function GuestSettingsScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.slotsScroll}>
             {PARTICIPANT_TIERS.map((tier) => {
-              const isActive = selectedParticipantId === tier.id;
+              const isActive = participantTierId === tier.id;
               return (
                 <Pressable
                   key={tier.id}
                   style={[styles.slot, isActive && styles.slotActive]}
-                  onPress={() => setSelectedParticipantId(tier.id)}>
+                  onPress={() => setParticipantTierId(tier.id)}>
                   <Text style={[styles.slotCount, isActive && styles.slotCountActive]}>
                     {tier.displayCount}
                   </Text>
@@ -340,12 +347,12 @@ export default function GuestSettingsScreen() {
           {/* Shot Options: Clean bare chips without text-clipping borders */}
           <View style={styles.shotOptions}>
             {SHOT_OPTIONS.map((opt) => {
-              const isActive = selectedShotId === opt.id;
+              const isActive = shotOptionId === opt.id;
               return (
                 <Pressable
                   key={opt.id}
                   style={[styles.shotOption, isActive && styles.shotOptionActive]}
-                  onPress={() => setSelectedShotId(opt.id)}>
+                  onPress={() => setShotOptionId(opt.id)}>
                   <Text
                     style={[
                       styles.shotOptionText,
@@ -367,8 +374,8 @@ export default function GuestSettingsScreen() {
           <Text style={styles.sectionLabel}>Visibility permissions</Text>
           <View style={styles.toggleRow}>
             <Switch
-              value={visible}
-              onValueChange={setVisible}
+              value={everyoneCanSee}
+              onValueChange={setEveryoneCanSee}
               trackColor={{ false: C.surfaceHighest, true: C.primaryContainer }}
               thumbColor={C.onSurface}
             />
@@ -379,11 +386,7 @@ export default function GuestSettingsScreen() {
 
       {/* Footer Navigation */}
       <View style={styles.footer}>
-        <View style={styles.dots}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.dot, i === 4 && styles.dotActive]} />
-          ))}
-        </View>
+        <StepDots step={5} />
         <Pressable
           style={styles.createBtn}
           onPress={() => router.push('/create/camera-selection')}>
@@ -449,7 +452,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: C.onSurfaceVariant,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.hanken,
     lineHeight: 26,
   },
   barePriceTextPaid: {
@@ -490,7 +493,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '700',
     color: C.onSurface,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.hanken,
   },
   slotCountActive: {
     color: C.primary,
@@ -602,7 +605,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.35)',
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.hanken,
   },
   filmFrameDivider: {
     width: 1,
@@ -614,7 +617,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '800',
     color: C.primary,
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.hanken,
   },
 
   /* Half-iPhone Camera Mockup in Center */
@@ -715,7 +718,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: C.onSurface,
     fontWeight: '600',
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.hanken,
   },
   shotOptionTextActive: {
     color: C.primary,
@@ -740,16 +743,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 48,
     paddingTop: 16,
-  },
-  dots: { flexDirection: 'row', gap: 10 },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: C.surfaceHighest,
-  },
-  dotActive: {
-    backgroundColor: C.onSurface,
   },
   createBtn: {
     flexDirection: 'row',

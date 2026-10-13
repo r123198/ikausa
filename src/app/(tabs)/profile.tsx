@@ -1,87 +1,139 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
+import { Button } from '@/components/ui/button';
+import { ErrorState, LoadingState } from '@/components/ui/screen-state';
+import { useCoverSource } from '@/constants/covers';
 import { C, T } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
+import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
+import { eventPhase, fetchMyEvents, type EventSummary } from '@/lib/events';
+import { formatDate, pluralize, timeUntil } from '@/lib/format';
+import { supabase } from '@/lib/supabase';
 
-const STATS = [
-  { value: '12', label: 'Rolls' },
-  { value: '247', label: 'Photos' },
-  { value: '8', label: 'Friends' },
-];
+function RollRow({ event, detail, href }: { event: EventSummary; detail: string; href: Href }) {
+  const router = useRouter();
+  const cover = useCoverSource(event.cover);
 
-const RECENT = [
-  require('@/assets/images/samples/trvl_1.jpg'),
-  require('@/assets/images/samples/trvl_2.jpg'),
-  require('@/assets/images/samples/trvl_3.jpg'),
-  require('@/assets/images/samples/trvl_4.jpg'),
-  require('@/assets/images/samples/trvl_5.jpg'),
-  require('@/assets/images/samples/trvl_1.jpg'),
-];
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${event.name}, ${detail}`}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPress={() => router.push(href)}>
+      {cover ? (
+        <Image source={cover} style={styles.thumb} contentFit="cover" />
+      ) : (
+        <View style={[styles.thumb, styles.thumbFallback]} />
+      )}
+      <View style={styles.rowText}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {event.name}
+        </Text>
+        <Text style={styles.rowMeta} numberOfLines={1}>
+          {detail}
+        </Text>
+      </View>
+      <Icon ios="chevron.right" material="chevron_right" size={16} color={C.outline} />
+    </Pressable>
+  );
+}
+
+function RollGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      <View style={styles.group}>{children}</View>
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
-  const router = useRouter();
+  const { session } = useAuth();
+  const { data: events, error, isLoading, reload } = useFocusedAsync(fetchMyEvents, []);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+
+  const displayName = (session?.user.user_metadata.display_name as string | undefined) ?? '';
+  const email = session?.user.email ?? '';
+
+  async function handleSignOut() {
+    const { error: signOutFailure } = await supabase.auth.signOut();
+    if (signOutFailure) setSignOutError(errorMessage(signOutFailure));
+  }
+
+  if (!events && isLoading) return <LoadingState />;
+  if (!events) return <ErrorState message={error ?? 'Unknown error'} onRetry={reload} />;
+
+  const now = new Date();
+  const developing = events.filter((e) => eventPhase(e, now) === 'developing');
+  const done = events.filter((e) => ['ready', 'expired'].includes(eventPhase(e, now)));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
-        style={styles.scroll}
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={reload} tintColor={C.primary} />
+        }>
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>Y</Text>
+            <Text style={styles.avatarText}>{(displayName || email).charAt(0).toUpperCase()}</Text>
           </View>
-          <Text style={styles.name}>yebin</Text>
-          <Text style={styles.handle}>@yen.k</Text>
+          <View style={styles.headerText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName || 'Your profile'}
+            </Text>
+            <Text style={styles.email} numberOfLines={1}>
+              {email}
+            </Text>
+          </View>
+        </View>
 
-          <View style={styles.statsRow}>
-            {STATS.map((stat, i) => (
-              <View key={i} style={styles.statItem}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
+        {developing.length > 0 && (
+          <RollGroup title="Developing">
+            {developing.map((event) => (
+              <RollRow
+                key={event.id}
+                event={event}
+                href={`/developing/${event.id}`}
+                detail={`Reveals in ${timeUntil(event.revealAt, now)} · ${pluralize(event.photoCount, 'photo')}`}
+              />
             ))}
-          </View>
+          </RollGroup>
+        )}
 
-          <View style={styles.actionRow}>
-            <Pressable style={styles.editBtn}>
-              <Text style={styles.editBtnLabel}>Edit Profile</Text>
-            </Pressable>
-            <Pressable style={styles.settingsBtn}>
-              <Text style={styles.settingsBtnIcon}>⚙</Text>
-            </Pressable>
-          </View>
-        </View>
+        {done.length > 0 && (
+          <RollGroup title="Done">
+            {done.map((event) => (
+              <RollRow
+                key={event.id}
+                event={event}
+                href={`/roll/${event.id}`}
+                detail={
+                  eventPhase(event, now) === 'ready'
+                    ? `${pluralize(event.photoCount, 'photo')} · Export until ${formatDate(event.exportUntil)}`
+                    : `${pluralize(event.photoCount, 'photo')} · Export closed`
+                }
+              />
+            ))}
+          </RollGroup>
+        )}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Photos</Text>
-          <Pressable onPress={() => router.push('/gallery/tagaytay-trip')}>
-            <Text style={styles.viewAll}>View all</Text>
-          </Pressable>
-        </View>
+        {developing.length === 0 && done.length === 0 && (
+          <Text style={styles.empty}>
+            Rolls you've finished will show up here while they develop and once they're ready.
+          </Text>
+        )}
 
-        <View style={styles.photoGrid}>
-          {RECENT.map((src, i) => (
-            <View key={i} style={styles.photoCell}>
-              <Image source={src} style={styles.photoImg} contentFit="cover" />
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Badges</Text>
-        </View>
-
-        <View style={styles.badgeRow}>
-          {['🎞️', '📷', '🌟', '🎬'].map((emoji, i) => (
-            <View key={i} style={styles.badgeCard}>
-              <Text style={styles.badgeEmoji}>{emoji}</Text>
-              <Text style={styles.badgeLabel}>{['Film Buff', 'Sharpshooter', 'Star Shot', 'Debut'][i]}</Text>
-            </View>
-          ))}
-        </View>
+        {signOutError && <Text style={styles.error}>{signOutError}</Text>}
+        <Button label="Sign out" variant="danger" onPress={handleSignOut} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -89,110 +141,39 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
-  scroll: { flex: 1 },
-  content: { paddingBottom: 120 },
+  content: { padding: 20, paddingBottom: 40, gap: 28 },
+  pressed: { opacity: 0.85 },
 
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
-    gap: 8,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 8 },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: C.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
-    borderWidth: 3,
-    borderColor: `${C.primary}33`,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
   },
-  avatarText: { ...T.headlineLgMobile, color: C.onPrimary },
-  name: { ...T.headlineMd, color: C.onSurface },
-  handle: { ...T.label, color: C.onSurfaceVariant, marginBottom: 8 },
+  avatarText: { ...T.headlineMd, color: C.onPrimaryContainer },
+  headerText: { flex: 1, gap: 2 },
+  name: { ...T.headlineMd, fontSize: 26, lineHeight: 32 },
+  email: { ...T.bodyMd, fontSize: 15, color: C.onSurfaceVariant },
 
-  statsRow: {
-    flexDirection: 'row',
-    gap: 32,
-    marginTop: 8,
-    marginBottom: 16,
+  section: { gap: 12 },
+  sectionTitle: {
+    ...T.label,
+    lineHeight: 16,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: C.outline,
   },
-  statItem: { alignItems: 'center', gap: 2 },
-  statValue: { ...T.bodyLg, fontWeight: '700', color: C.onSurface },
-  statLabel: { ...T.label, color: C.onSurfaceVariant },
+  group: { backgroundColor: C.surface, borderRadius: 20, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, minHeight: 72 },
+  thumb: { width: 52, height: 52, borderRadius: 12 },
+  thumbFallback: { backgroundColor: C.surfaceHigh },
+  rowText: { flex: 1, gap: 4 },
+  rowTitle: { ...T.bodyMd, fontSize: 17, fontWeight: '700' },
+  rowMeta: { ...T.bodyMd, fontSize: 14, lineHeight: 20, color: C.onSurfaceVariant },
 
-  actionRow: { flexDirection: 'row', gap: 10 },
-  editBtn: {
-    paddingHorizontal: 28,
-    paddingVertical: 10,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: C.outlineVariant,
-    backgroundColor: C.surfaceHigh,
-  },
-  editBtnLabel: { ...T.bodyMd, fontWeight: '500', color: C.onSurface },
-  settingsBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: C.outlineVariant,
-    backgroundColor: C.surfaceHigh,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsBtnIcon: { fontSize: 18, color: C.onSurfaceVariant },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  sectionTitle: { ...T.headlineMd, fontSize: 18, color: C.onSurface },
-  viewAll: { ...T.label, color: C.primary, textTransform: 'uppercase', letterSpacing: 1 },
-
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 24,
-    gap: 6,
-    marginBottom: 24,
-  },
-  photoCell: {
-    width: '31%',
-    aspectRatio: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: C.surfaceLow,
-  },
-  photoImg: { width: '100%', height: '100%' },
-
-  badgeRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  badgeCard: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderColor: `${C.outlineVariant}33`,
-    minWidth: '22%',
-  },
-  badgeEmoji: { fontSize: 24 },
-  badgeLabel: { ...T.label, color: C.onSurfaceVariant, textAlign: 'center' },
+  empty: { ...T.bodyMd, fontSize: 15, color: C.onSurfaceVariant },
+  error: { ...T.bodyMd, fontSize: 14, color: C.error },
 });

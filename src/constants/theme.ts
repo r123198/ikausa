@@ -48,8 +48,6 @@ export const FilmColors = {
 export const Fonts = {
   playfair: 'PlayfairDisplay',
   hanken: 'HankenGrotesk',
-  mono: 'SpaceMono',
-  monoBold: 'SpaceMono-Bold',
 } as const;
 
 export const T = {
@@ -90,7 +88,7 @@ export const T = {
     color: C.onSurface,
   },
   label: {
-    fontFamily: 'SpaceMono',
+    fontFamily: 'HankenGrotesk',
     fontSize: 12,
     lineHeight: 12,
     letterSpacing: 0.6,

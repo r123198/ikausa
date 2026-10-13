@@ -10,14 +10,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StepDots } from '@/components/step-dots';
 import { C, T } from '@/constants/theme';
+import { useCreateEvent } from '@/context/create-event-context';
 
 const SUGGESTIONS = ['Salo-salo', 'Handaan', 'Debu', 'Reunion'];
 
 export default function EventNameScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
+  const { name, setName } = useCreateEvent();
+  const [activeSuggestion, setActiveSuggestion] = useState<string | null>(
+    SUGGESTIONS.includes(name) ? name : null
+  );
 
   function handleSuggestion(s: string) {
     setName(s);
@@ -76,13 +80,12 @@ export default function EventNameScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.dots}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-        </View>
+        <StepDots step={1} />
         <Pressable
-          style={styles.nextBtn}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: name.trim().length === 0 }}
+          disabled={name.trim().length === 0}
+          style={[styles.nextBtn, name.trim().length === 0 && styles.nextBtnDisabled]}
           onPress={() => router.push('/create/finish-time')}>
           <Text style={styles.nextBtnLabel}>Next</Text>
           <Text style={styles.nextBtnIcon}>→</Text>
@@ -154,20 +157,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     backgroundColor: `${C.background}cc`,
   },
-  dots: { flexDirection: 'row', gap: 10 },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: `${C.onSurfaceVariant}33`,
-  },
-  dotActive: {
-    backgroundColor: C.primary,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-  },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -182,6 +171,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
+  nextBtnDisabled: { opacity: 0.4 },
   nextBtnLabel: { ...T.bodyLg, fontWeight: '700', color: C.onPrimaryFixed },
   nextBtnIcon: { fontSize: 20, color: C.onPrimaryFixed },
 });

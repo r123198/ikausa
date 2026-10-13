@@ -1,46 +1,41 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { C, T } from '@/constants/theme';
 
 export default function LimitReachedScreen() {
   const router = useRouter();
+  const { name } = useLocalSearchParams<{ name?: string }>();
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.glowBg} />
 
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerIcon}>◈</Text>
-          <Text style={styles.headerTitle}>Barkada</Text>
-        </View>
-      </View>
-
       <View style={styles.content}>
         <View style={styles.iconCircle}>
           <View style={styles.iconCircleGrad} />
-          <Text style={styles.icon}>⊘</Text>
+          <Icon ios="person.2.slash" material="group_off" size={44} color={C.onSurfaceVariant} />
         </View>
 
         <View style={styles.textGroup}>
-          <Text style={styles.eventLabel}>Brian's party</Text>
-          <Text style={styles.headline}>Roll is Full</Text>
+          {name && <Text style={styles.eventLabel}>{name}</Text>}
+          <Text style={styles.headline}>Roll is full</Text>
         </View>
 
         <Text style={styles.bodyText}>
-          This film roll has reached its 5 participant limit. You can still view
-          the photos once they are developed.
+          This roll has reached its participant limit. Ask the host if they can make room for
+          you.
         </Text>
 
         <View style={styles.actionArea}>
           <Pressable
+            accessibilityRole="button"
             style={styles.viewBtn}
-            onPress={() => router.push('/developing/brians-party')}>
+            onPress={() => router.replace('/')}>
             <View style={styles.viewBtnShimmer} />
-            <Text style={styles.viewBtnLabel}>View developing gallery</Text>
-            <Text style={styles.viewBtnIcon}>→</Text>
+            <Text style={styles.viewBtnLabel}>Back to home</Text>
           </Pressable>
         </View>
       </View>
@@ -61,18 +56,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.primary,
     opacity: 0.03,
   },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    height: 64,
-    backgroundColor: 'rgba(19,19,19,0.8)',
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIcon: { fontSize: 20, color: C.primary },
-  headerTitle: { ...T.headlineMd, fontSize: 20, color: C.primaryContainer },
 
   content: {
     flex: 1,
@@ -103,7 +86,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.surfaceHigh,
     opacity: 0.5,
   },
-  icon: { fontSize: 48, color: C.onSurfaceVariant, position: 'relative', zIndex: 1 },
 
   textGroup: { alignItems: 'center', gap: 8 },
   eventLabel: {
@@ -152,5 +134,4 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 1,
   },
-  viewBtnIcon: { fontSize: 18, color: C.onPrimary, zIndex: 1 },
 });
