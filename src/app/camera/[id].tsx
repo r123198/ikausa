@@ -4,17 +4,21 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FannedPhotos } from '@/components/fanned-photos';
+import { FilmCounter } from '@/components/film-counter';
 import { Icon } from '@/components/icon';
+import { InviteSheet } from '@/components/invite-sheet';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
-import { T } from '@/constants/theme';
+import { C, T } from '@/constants/theme';
 import { useUserId } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
-import { eventPhase, fetchEvent, shotsLeft, uploadPhoto } from '@/lib/events';
+import { eventPhase, fetchEvent, fetchPhotos, shotsLeft, uploadPhoto } from '@/lib/events';
+import { timeUntil } from '@/lib/format';
 
 const PHOTO_QUALITY = 0.8;
-const WHITE = '#fff';
+const PHASE_TICK_MS = 10_000;
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -26,19 +30,29 @@ export default function CameraScreen() {
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const now = useNow(10_000);
-  const { data: event, error, isLoading, reload } = useFocusedAsync(() => fetchEvent(id), [id]);
+  /** Shots taken this session, shown instantly before the server list catches up. */
+  const [justTaken, setJustTaken] = useState<string[]>([]);
+  const now = useNow(PHASE_TICK_MS);
 
-  if (event === undefined && isLoading) return <LoadingState />;
-  if (event === undefined) return <ErrorState message={error ?? 'Unknown error'} onRetry={reload} />;
-  if (event === null) {
+  const { data, error, isLoading, reload } = useFocusedAsync(async () => {
+    const event = await fetchEvent(id);
+    const photos = event ? await fetchPhotos(id) : [];
+    return { event, myPhotoUrls: photos.filter((p) => p.userId === userId).map((p) => p.url) };
+  }, [id, userId]);
+
+  if (!data && isLoading) return <LoadingState />;
+  if (!data) return <ErrorState message={error ?? 'Unknown error'} onRetry={reload} />;
+  if (!data.event) {
     return <ErrorState message="This roll doesn't exist or you're not a member." onRetry={reload} />;
   }
 
+  const event = data.event;
   const left = shotsLeft(event);
   const isLive = eventPhase(event, now) === 'live';
   const canShoot = isLive && left !== 0 && isReady && !isSaving;
+  const recent = [...justTaken, ...data.myPhotoUrls];
 
   async function handleShutter() {
     if (!cameraRef.current || !canShoot) return;
@@ -46,24 +60,24 @@ export default function CameraScreen() {
     setStatus(null);
     try {
       const picture = await cameraRef.current.takePictureAsync({ quality: PHOTO_QUALITY });
-      await uploadPhoto(event!.id, userId, picture.uri);
-      setStatus('Saved to the roll');
-      reload();
+      setJustTaken((shots) => [picture.uri, ...shots]);
+      await uploadPhoto(event.id, userId, picture.uri);
     } catch (e) {
       const message = errorMessage(e);
+      setJustTaken((shots) => shots.slice(1));
       setStatus(
         /shot_limit_reached|row-level security/.test(message)
           ? "That shot couldn't be saved: you're out of shots or the roll has ended."
           : `Couldn't save that shot: ${message}`
       );
-      reload();
     } finally {
       setIsSaving(false);
+      reload();
     }
   }
 
   function renderViewfinder() {
-    if (!permission) return <ActivityIndicator color={WHITE} style={styles.camera} />;
+    if (!permission) return <ActivityIndicator color={C.white} style={styles.camera} />;
     if (!permission.granted) {
       return (
         <View style={styles.permission}>
@@ -85,70 +99,84 @@ export default function CameraScreen() {
     );
   }
 
-  const counter =
-    left === null ? 'Unlimited shots' : `${left} of ${event.shotsPerPerson} shots left`;
+  const blockedMessage = !isLive
+    ? 'This roll has ended. No more photos can be taken.'
+    : left === 0
+      ? "You've used all your shots on this roll."
+      : null;
 
   return (
-    <View style={styles.safe}>
-      <SafeAreaView style={styles.safeInner}>
+    <View style={styles.root}>
+      <SafeAreaView style={styles.flex}>
         <View style={styles.topBar}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Close camera"
-            style={styles.roundBtn}
-            onPress={() => router.back()}>
-            <Icon ios="xmark" material="close" size={18} color={WHITE} />
+            accessibilityLabel="Back"
+            hitSlop={10}
+            style={styles.iconBtn}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+            <Icon ios="chevron.left" material="arrow_back" size={22} color={C.white} />
           </Pressable>
           <View style={styles.titleBlock}>
-            <Text style={styles.eventName} numberOfLines={1}>
+            <Text style={styles.title} numberOfLines={1}>
               {event.name}
             </Text>
-            <Text style={styles.shotCounterText}>{counter}</Text>
+            <View style={styles.timeLine}>
+              <Icon ios="clock" material="schedule" size={13} color={C.textMuted} />
+              <Text style={styles.time}>
+                {isLive ? `${timeUntil(event.endsAt, now)} left` : 'Ended'}
+              </Text>
+            </View>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={isFlashOn ? 'Turn flash off' : 'Turn flash on'}
-            style={styles.roundBtn}
-            onPress={() => setIsFlashOn((on) => !on)}>
-            <Icon
-              ios={isFlashOn ? 'bolt.fill' : 'bolt.slash.fill'}
-              material={isFlashOn ? 'flash_on' : 'flash_off'}
-              size={18}
-              color={WHITE}
-            />
+            accessibilityLabel="Invite"
+            hitSlop={10}
+            disabled={!isLive}
+            style={[styles.iconBtn, !isLive && styles.disabled]}
+            onPress={() => setIsInviteOpen(true)}>
+            <Icon ios="qrcode" material="qr_code_2" size={22} color={C.white} />
           </Pressable>
         </View>
 
         <View style={styles.viewfinder}>
           {renderViewfinder()}
-          <View style={styles.vignette} pointerEvents="none" />
-          {(status || !isLive || left === 0) && (
+          {(blockedMessage || status) && (
             <Text style={styles.status} accessibilityLiveRegion="polite">
-              {!isLive
-                ? 'This roll has ended. No more photos can be taken.'
-                : left === 0
-                  ? "You've used all your shots on this roll."
-                  : status}
+              {blockedMessage ?? status}
             </Text>
           )}
+          <View style={styles.viewfinderControls} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isFlashOn ? 'Turn flash off' : 'Turn flash on'}
+              hitSlop={10}
+              style={styles.overlayBtn}
+              onPress={() => setIsFlashOn((on) => !on)}>
+              <Icon
+                ios={isFlashOn ? 'bolt.fill' : 'bolt.slash.fill'}
+                material={isFlashOn ? 'flash_on' : 'flash_off'}
+                size={20}
+                color={C.white}
+              />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Switch camera"
+              hitSlop={10}
+              style={styles.overlayBtn}
+              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}>
+              <Icon ios="arrow.triangle.2.circlepath" material="cameraswitch" size={20} color={C.white} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.controls}>
-          <View style={styles.sideSlot}>
-            {event.shotsPerPerson !== null && (
-              <View style={styles.filmRollBox} accessibilityLabel={counter}>
-                <View style={styles.filmRollPerfs}>
-                  {[0, 1, 2, 3].map((i) => (
-                    <View key={i} style={styles.filmRollPerf} />
-                  ))}
-                </View>
-                <View style={styles.filmRollCenter}>
-                  <Text style={styles.filmCountTop}>{left}</Text>
-                  <View style={styles.filmCountDivider} />
-                  <Text style={styles.filmCountBottom}>{event.shotsPerPerson}</Text>
-                </View>
-              </View>
-            )}
+          <View style={styles.side}>
+            <FilmCounter
+              frame={event.shotsPerPerson === null ? null : Math.min(event.myShotCount + 1, event.shotsPerPerson)}
+              total={event.shotsPerPerson}
+            />
           </View>
 
           <Pressable
@@ -156,174 +184,111 @@ export default function CameraScreen() {
             accessibilityLabel="Take photo"
             accessibilityState={{ disabled: !canShoot, busy: isSaving }}
             disabled={!canShoot}
-            style={[styles.shutter, !canShoot && styles.shutterDisabled]}
+            style={({ pressed }) => [
+              styles.shutter,
+              !canShoot && styles.disabled,
+              pressed && styles.shutterPressed,
+            ]}
             onPress={handleShutter}>
-            {isSaving ? <ActivityIndicator color={WHITE} /> : <View style={styles.shutterInner} />}
+            {isSaving ? <ActivityIndicator color={C.black} /> : <View style={styles.shutterInner} />}
           </Pressable>
 
-          <View style={styles.sideSlot}>
+          <View style={[styles.side, styles.sideRight]}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Switch camera"
-              style={styles.roundBtn}
-              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}>
-              <Icon
-                ios="arrow.triangle.2.circlepath"
-                material="cameraswitch"
-                size={20}
-                color={WHITE}
-              />
+              accessibilityLabel="Your shots on this roll"
+              hitSlop={8}
+              onPress={() => router.push(`/roll/${event.id}`)}>
+              <FannedPhotos urls={recent} />
             </Pressable>
           </View>
         </View>
       </SafeAreaView>
+
+      <InviteSheet
+        visible={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
+        eventName={event.name}
+        inviteCode={event.inviteCode}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#1c1c1e' },
-  safeInner: { flex: 1 },
+  root: { flex: 1, backgroundColor: C.black },
+  flex: { flex: 1 },
+  disabled: { opacity: 0.4 },
 
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  titleBlock: { flex: 1, alignItems: 'center', gap: 2 },
+  title: { ...T.title, fontSize: 21, lineHeight: 26, color: C.white },
+  timeLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  time: { ...T.caption, fontSize: 13 },
+
+  viewfinder: {
+    flex: 1,
+    marginHorizontal: 12,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#050505',
   },
-  roundBtn: {
+  camera: { flex: 1 },
+  viewfinderControls: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  overlayBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  titleBlock: { flex: 1, gap: 2 },
-  eventName: {
-    fontFamily: 'HankenGrotesk',
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    color: '#fff',
-  },
-  shotCounterText: {
-    fontFamily: 'HankenGrotesk',
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#9ca3af',
-  },
-
-  camera: { flex: 1 },
   status: {
+    ...T.caption,
     position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 12,
+    top: 16,
+    left: 16,
+    right: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    color: '#fff',
-    fontFamily: 'HankenGrotesk',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    color: C.white,
     fontSize: 14,
     textAlign: 'center',
   },
-  permission: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    gap: 16,
-  },
-  permissionText: { ...T.bodyMd, color: '#fff', textAlign: 'center' },
-  sideSlot: { width: 64, alignItems: 'center' },
-  viewfinder: {
-    flex: 1,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-    position: 'relative',
-  },
-  vignette: {
-    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 60,
-    borderRadius: 16,
-  },
+  permission: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
+  permissionText: { ...T.bodyMd, color: C.white, textAlign: 'center' },
 
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 32,
-    paddingTop: 8,
-    paddingBottom: 32,
-    height: 128,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
-
-  filmRollBox: {
-    width: 48,
-    height: 56,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  filmRollPerfs: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 10,
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  filmRollPerf: {
-    width: 6,
-    height: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 1,
-  },
-  filmRollCenter: { alignItems: 'center', paddingLeft: 8 },
-  filmCountTop: {
-    fontFamily: 'HankenGrotesk',
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  filmCountDivider: { width: 16, height: 1, backgroundColor: 'rgba(255,255,255,0.4)', marginVertical: 2 },
-  filmCountBottom: {
-    fontFamily: 'HankenGrotesk',
-    fontSize: 10,
-    color: '#9ca3af',
-  },
-
+  side: { flex: 1, alignItems: 'flex-start' },
+  sideRight: { alignItems: 'flex-end' },
   shutter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 82,
+    height: 82,
+    borderRadius: 41,
     borderWidth: 4,
-    borderColor: '#9ca3af',
+    borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 4,
+    padding: 5,
   },
-  shutterDisabled: { opacity: 0.4 },
-  shutterInner: {
-    flex: 1,
-    width: '100%',
-    borderRadius: 36,
-    backgroundColor: '#fff',
-  },
-
+  shutterPressed: { transform: [{ scale: 0.94 }] },
+  shutterInner: { width: '100%', height: '100%', borderRadius: 40, backgroundColor: C.white },
 });

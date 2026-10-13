@@ -1,13 +1,17 @@
-import { Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
+import { useState } from 'react';
+import { Share, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { QrCode } from '@/components/qr-code';
 import { Button } from '@/components/ui/button';
+import { DottedDivider } from '@/components/ui/dotted-divider';
+import { Sheet } from '@/components/ui/sheet';
 import { C, T } from '@/constants/theme';
 import { inviteUrl } from '@/lib/invite';
 
-const QR_SIZE = 200;
+const QR_SIZE = 176;
+const COPIED_RESET_MS = 2000;
 
 interface InviteSheetProps {
   visible: boolean;
@@ -17,14 +21,14 @@ interface InviteSheetProps {
 }
 
 export function InviteSheet({ visible, onClose, eventName, inviteCode }: InviteSheetProps) {
-  const insets = useSafeAreaInsets();
   const url = inviteUrl(inviteCode);
+  const [isCopied, setIsCopied] = useState(false);
 
   async function handleShare() {
     try {
       await Share.share({
         title: `Join ${eventName}`,
-        message: `You're invited to shoot photos at "${eventName}" on Ikausa.\nJoin here: ${url}\nOr enter code ${inviteCode}`,
+        message: `Shoot "${eventName}" with me on Ikausa: ${url}`,
         url,
       });
     } catch (error) {
@@ -32,88 +36,59 @@ export function InviteSheet({ visible, onClose, eventName, inviteCode }: InviteS
     }
   }
 
+  async function handleCopy() {
+    await Clipboard.setStringAsync(url);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), COPIED_RESET_MS);
+  }
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close invite" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
-        <View style={styles.handle} />
-        <View style={styles.header}>
-          <Text style={styles.title} numberOfLines={2}>
-            Invite friends to {eventName}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={onClose}
-            hitSlop={12}
-            style={styles.close}>
-            <Icon ios="xmark" material="close" size={18} color={C.onSurfaceVariant} />
-          </Pressable>
-        </View>
-        <Text style={styles.subtitle}>
-          They can scan this code with their phone camera, or you can send them the link.
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title="Shoot it together"
+      subtitle={`Let friends frame ${eventName} too, your night through their lens.`}>
+      <DottedDivider />
+
+      <View style={styles.qr}>
+        <QrCode value={url} size={QR_SIZE} />
+        <Text style={styles.code} selectable accessibilityLabel={`Invite code ${inviteCode}`}>
+          {inviteCode}
         </Text>
+      </View>
 
-        <View style={styles.qrWrap}>
-          <QrCode value={url} size={QR_SIZE} />
-        </View>
-
-        <View style={styles.codeRow}>
-          <Text style={styles.codeLabel}>Invite code</Text>
-          <Text style={styles.code} selectable>
-            {inviteCode}
-          </Text>
-        </View>
-
+      <View style={styles.actions}>
         <Button
-          label="Share invite link"
+          label="Share link"
+          variant="outline"
+          size="sm"
+          style={styles.action}
+          icon={<Icon ios="link" material="link" size={16} color={C.onSurface} />}
           onPress={handleShare}
-          icon={<Icon ios="square.and.arrow.up" material="ios_share" size={20} color={C.onPrimary} />}
+        />
+        <Button
+          label={isCopied ? 'Copied' : 'Copy link'}
+          variant="outline"
+          size="sm"
+          style={styles.action}
+          icon={
+            <Icon
+              ios={isCopied ? 'checkmark' : 'doc.on.doc'}
+              material={isCopied ? 'check' : 'content_copy'}
+              size={16}
+              color={C.onSurface}
+            />
+          }
+          onPress={handleCopy}
         />
       </View>
-    </Modal>
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
-  sheet: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 10,
-    gap: 16,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.outlineVariant,
-    marginBottom: 6,
-  },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { ...T.headlineMd, fontSize: 24, lineHeight: 30, flex: 1 },
-  close: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.surfaceHighest,
-  },
-  subtitle: { ...T.bodyMd, fontSize: 15, lineHeight: 22, color: C.onSurfaceVariant },
-  qrWrap: { alignItems: 'center', paddingVertical: 4 },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    minHeight: 52,
-    borderRadius: 14,
-    backgroundColor: C.surfaceHigh,
-  },
-  codeLabel: { ...T.bodyMd, fontSize: 14, color: C.onSurfaceVariant },
-  code: { ...T.bodyLg, fontWeight: '700', letterSpacing: 3, color: C.onSurface },
+  qr: { alignItems: 'center', gap: 12, paddingTop: 4 },
+  code: { ...T.italic, fontSize: 18, letterSpacing: 4, color: C.textSoft },
+  actions: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  action: { minWidth: 140 },
 });

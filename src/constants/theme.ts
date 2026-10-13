@@ -1,7 +1,7 @@
 import '@/global.css';
 
 export const C = {
-  background: '#131313',
+  background: '#0f0f10',
   surface: '#201f1f',
   surfaceHigh: '#2a2a2a',
   surfaceHighest: '#353534',
@@ -26,6 +26,14 @@ export const C = {
   outlineVariant: '#534439',
   inverseSurface: '#e5e2e1',
   error: '#ffb4ab',
+  // Neutral greys for the film-camera look; color comes from the photos.
+  card: '#1a1a1c',
+  cardRaised: '#232326',
+  hairline: 'rgba(255,255,255,0.09)',
+  textMuted: '#8d8d92',
+  textSoft: '#b9b9be',
+  white: '#ffffff',
+  black: '#000000',
 } as const;
 
 export const FilmColors = {
@@ -47,6 +55,7 @@ export const FilmColors = {
 
 export const Fonts = {
   playfair: 'PlayfairDisplay',
+  playfairItalic: 'PlayfairDisplay-Italic',
   hanken: 'HankenGrotesk',
 } as const;
 
@@ -56,21 +65,22 @@ export const T = {
     fontSize: 40,
     lineHeight: 48,
     letterSpacing: -0.8,
-    fontWeight: '700' as const,
+    fontWeight: '400' as const,
     color: C.onSurface,
   },
   headlineLgMobile: {
     fontFamily: 'PlayfairDisplay',
     fontSize: 32,
     lineHeight: 38,
-    fontWeight: '700' as const,
+    letterSpacing: -0.4,
+    fontWeight: '400' as const,
     color: C.onSurface,
   },
   headlineMd: {
     fontFamily: 'PlayfairDisplay',
     fontSize: 28,
     lineHeight: 36,
-    fontWeight: '600' as const,
+    fontWeight: '400' as const,
     color: C.onSurface,
   },
   bodyLg: {
@@ -94,6 +104,39 @@ export const T = {
     letterSpacing: 0.6,
     fontWeight: '700' as const,
     color: C.onSurfaceVariant,
+  },
+  /** Small spaced-out section label, e.g. ACTIVE / ALBUMS. */
+  eyebrow: {
+    fontFamily: 'HankenGrotesk',
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 2.2,
+    fontWeight: '600' as const,
+    textTransform: 'uppercase' as const,
+    color: C.textMuted,
+  },
+  /** Serif title used on cards and rows. */
+  title: {
+    fontFamily: 'PlayfairDisplay',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '400' as const,
+    color: C.onSurface,
+  },
+  /** Italic serif for numbers, counters and names on photos. */
+  italic: {
+    fontFamily: 'PlayfairDisplay-Italic',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '400' as const,
+    color: C.onSurface,
+  },
+  caption: {
+    fontFamily: 'HankenGrotesk',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400' as const,
+    color: C.textMuted,
   },
 } as const;
 
@@ -128,3 +171,6 @@ export const Spacing = {
 
 export const BottomTabInset = 0;
 export const MaxContentWidth = 800;
+
+/** Bottom space screens leave so content clears the floating tab bar. */
+export const FloatingTabBarSpace = 120;

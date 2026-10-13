@@ -33,3 +33,16 @@ export function formatDateTime(date: Date): string {
     minute: '2-digit',
   });
 }
+
+/** "Mar 5–8, 2026", "Feb 28 – Mar 2, 2026" or "Mar 5, 2026" for a single day. */
+export function formatDateRange(start: Date, end: Date): string {
+  const year = end.getFullYear();
+  const month = (d: Date) => d.toLocaleDateString(undefined, { month: 'short' });
+  if (start.toDateString() === end.toDateString()) {
+    return `${month(end)} ${end.getDate()}, ${year}`;
+  }
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === year) {
+    return `${month(start)} ${start.getDate()}–${end.getDate()}, ${year}`;
+  }
+  return `${month(start)} ${start.getDate()} – ${month(end)} ${end.getDate()}, ${year}`;
+}

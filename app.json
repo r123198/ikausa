@@ -50,6 +50,14 @@
           "savePhotosPermission": "Ikausa saves exported roll photos to your library.",
           "isAccessMediaLocationEnabled": false
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ikausa lets you pick a cover photo for your roll.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

@@ -12,6 +12,7 @@ function RootStack() {
   const { session, isReady } = useAuth();
   const [fontsLoaded, fontError] = useFonts({
     PlayfairDisplay: require('@/assets/fonts/Playfair_Display/PlayfairDisplay-VariableFont_wght.ttf'),
+    'PlayfairDisplay-Italic': require('@/assets/fonts/Playfair_Display/PlayfairDisplay-Italic-VariableFont_wght.ttf'),
     HankenGrotesk: require('@/assets/fonts/Hanken_Grotesk/HankenGrotesk-VariableFont_wght.ttf'),
   });
   const isLoaded = (fontsLoaded || Boolean(fontError)) && isReady;
@@ -30,14 +31,7 @@ function RootStack() {
         <Stack.Screen name="camera/[id]" />
         <Stack.Screen name="developing/[id]" />
         <Stack.Screen name="join/limit-reached" />
-        <Stack.Screen name="create/event-name" />
-        <Stack.Screen name="create/finish-time" />
-        <Stack.Screen name="create/reveal-settings" />
-        <Stack.Screen name="create/export-window" />
-        <Stack.Screen name="create/guest-settings" />
-        <Stack.Screen name="create/camera-selection" />
-        <Stack.Screen name="create/invitation-card" />
-        <Stack.Screen name="create/payment-summary" />
+        <Stack.Screen name="create/new" />
       </Stack.Protected>
       {/* Reachable signed out: invite links preview the event before sign-in. */}
       <Stack.Screen name="sign-in" />

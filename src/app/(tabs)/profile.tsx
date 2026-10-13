@@ -8,7 +8,7 @@ import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { useCoverSource } from '@/constants/covers';
-import { C, T } from '@/constants/theme';
+import { C, FloatingTabBarSpace, T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { eventPhase, fetchMyEvents, type EventSummary } from '@/lib/events';
@@ -141,7 +141,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
-  content: { padding: 20, paddingBottom: 40, gap: 28 },
+  content: { padding: 20, paddingBottom: FloatingTabBarSpace, gap: 28 },
   pressed: { opacity: 0.85 },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 8 },
@@ -155,24 +155,24 @@ const styles = StyleSheet.create({
   },
   avatarText: { ...T.headlineMd, color: C.onPrimaryContainer },
   headerText: { flex: 1, gap: 2 },
-  name: { ...T.headlineMd, fontSize: 26, lineHeight: 32 },
-  email: { ...T.bodyMd, fontSize: 15, color: C.onSurfaceVariant },
+  name: { ...T.headlineLgMobile, fontSize: 30, lineHeight: 36 },
+  email: { ...T.caption, fontSize: 15 },
 
   section: { gap: 12 },
-  sectionTitle: {
-    ...T.label,
-    lineHeight: 16,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: C.outline,
+  sectionTitle: { ...T.eyebrow },
+  group: {
+    backgroundColor: C.card,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
-  group: { backgroundColor: C.surface, borderRadius: 20, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, minHeight: 72 },
   thumb: { width: 52, height: 52, borderRadius: 12 },
   thumbFallback: { backgroundColor: C.surfaceHigh },
   rowText: { flex: 1, gap: 4 },
-  rowTitle: { ...T.bodyMd, fontSize: 17, fontWeight: '700' },
-  rowMeta: { ...T.bodyMd, fontSize: 14, lineHeight: 20, color: C.onSurfaceVariant },
+  rowTitle: { ...T.title, fontSize: 19, lineHeight: 24 },
+  rowMeta: { ...T.caption, fontSize: 14, lineHeight: 20 },
 
   empty: { ...T.bodyMd, fontSize: 15, color: C.onSurfaceVariant },
   error: { ...T.bodyMd, fontSize: 14, color: C.error },

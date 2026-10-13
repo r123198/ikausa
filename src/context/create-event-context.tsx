@@ -168,21 +168,6 @@ export const CAMERAS: CameraOption[] = [
   },
 ];
 
-export const MONTH_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
 export type { RevealOption };
 
 export interface ExportOption {
@@ -198,12 +183,6 @@ export const EXPORT_OPTIONS: ExportOption[] = [
 ];
 
 export type CoverChoice = NewEventInput['cover'];
-
-export const REVEAL_LABELS: Record<RevealOption, string> = {
-  during: 'During event',
-  after: 'After event',
-  delay: 'Additional delay',
-};
 
 export interface FinishDate {
   year: number;
@@ -300,11 +279,8 @@ export interface CreateEventContextType extends CreateEventState {
   setCover: (cover: CoverChoice) => void;
 
   // Derived values
-  formattedName: string;
-  formattedCloses: string;
   endsAt: Date;
   selectedExport: ExportOption;
-  revealLabel: string;
   selectedCamera: CameraOption;
   selectedParticipant: ParticipantTier;
   selectedShot: ShotOption;
@@ -370,20 +346,6 @@ export function useCreateEvent(): CreateEventContextType {
     resetCreateEventState();
   }, []);
 
-  const formattedName = useMemo(() => {
-    const trimmed = (state.name || '').trim();
-    return trimmed.length > 0 ? trimmed : 'Your roll';
-  }, [state.name]);
-
-  const formattedCloses = useMemo(() => {
-    const month = MONTH_SHORT[state.finishDate.month] || 'Jan';
-    const h = parseInt(state.finishTime.hour, 10) || 12;
-    const m = (parseInt(state.finishTime.minute, 10) || 0)
-      .toString()
-      .padStart(2, '0');
-    return `${month} ${state.finishDate.day}, ${state.finishDate.year} · ${h}:${m} ${state.finishTime.period}`;
-  }, [state.finishDate, state.finishTime]);
-
   const endsAt = useMemo(() => {
     const hour12 = (parseInt(state.finishTime.hour, 10) || 12) % 12;
     const hour24 = state.finishTime.period === 'PM' ? hour12 + 12 : hour12;
@@ -395,10 +357,6 @@ export function useCreateEvent(): CreateEventContextType {
   const selectedExport = useMemo(() => {
     return EXPORT_OPTIONS.find((o) => o.days === state.exportDays) || EXPORT_OPTIONS[1];
   }, [state.exportDays]);
-
-  const revealLabel = useMemo(() => {
-    return REVEAL_LABELS[state.revealOption] || 'During event';
-  }, [state.revealOption]);
 
   const selectedCamera = useMemo(() => {
     return CAMERAS.find((c) => c.id === state.cameraId) || CAMERAS[0];
@@ -445,11 +403,8 @@ export function useCreateEvent(): CreateEventContextType {
     setCameraId,
     setExportDays,
     setCover,
-    formattedName,
-    formattedCloses,
     endsAt,
     selectedExport,
-    revealLabel,
     selectedCamera,
     selectedParticipant,
     selectedShot,

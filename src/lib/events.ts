@@ -28,9 +28,13 @@ export interface EventSummary {
   shotsPerPerson: number | null;
   cameraId: string;
   cover: string | null;
+  createdAt: Date;
+  everyoneCanSee: boolean;
   memberCount: number;
   myShotCount: number;
   photoCount: number;
+  /** Storage paths of up to 4 recent photos the user can see. */
+  previewPaths: string[];
 }
 
 interface EventRow {
@@ -45,9 +49,12 @@ interface EventRow {
   shots_per_person: number | null;
   camera_id: string;
   cover: string | null;
+  created_at: string;
+  everyone_can_see: boolean;
   member_count: number;
   my_shot_count: number;
   photo_count: number;
+  preview_paths: string[] | null;
 }
 
 function toEvent(row: EventRow): EventSummary {
@@ -63,9 +70,12 @@ function toEvent(row: EventRow): EventSummary {
     shotsPerPerson: row.shots_per_person,
     cameraId: row.camera_id,
     cover: row.cover,
+    createdAt: new Date(row.created_at),
+    everyoneCanSee: row.everyone_can_see,
     memberCount: row.member_count,
     myShotCount: row.my_shot_count,
     photoCount: row.photo_count,
+    previewPaths: row.preview_paths ?? [],
   };
 }
 
@@ -218,6 +228,7 @@ export async function joinEvent(code: string): Promise<string> {
 
 export interface Photo {
   id: string;
+  userId: string;
   path: string;
   url: string;
   authorName: string;
@@ -227,7 +238,7 @@ export interface Photo {
 export async function fetchPhotos(eventId: string): Promise<Photo[]> {
   const { data, error } = await supabase
     .from('photos')
-    .select('id, storage_path, created_at, profiles(display_name)')
+    .select('id, user_id, storage_path, created_at, profiles(display_name)')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -236,6 +247,7 @@ export async function fetchPhotos(eventId: string): Promise<Photo[]> {
   const urls = await signedUrls(data.map((p) => p.storage_path));
   return data.map((p) => ({
     id: p.id,
+    userId: p.user_id,
     path: p.storage_path,
     url: urls.get(p.storage_path) ?? '',
     authorName:
@@ -271,7 +283,9 @@ export async function signedUrl(path: string): Promise<string | null> {
   return data.signedUrl;
 }
 
-async function signedUrls(paths: string[]): Promise<Map<string, string>> {
+/** Signs many storage paths in one request; missing/failed paths are left out. */
+export async function signedUrls(paths: string[]): Promise<Map<string, string>> {
+  if (paths.length === 0) return new Map();
   const { data, error } = await supabase.storage
     .from(MEDIA_BUCKET)
     .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);

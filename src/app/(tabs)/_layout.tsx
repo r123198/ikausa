@@ -1,86 +1,102 @@
 import { Tabs, useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import type { ComponentProps } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { C, Fonts } from '@/constants/theme';
 
-const TAB_BAR_HEIGHT = 60;
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-function CreateIcon() {
+const TABS = {
+  index: { ios: 'film.stack', material: 'photo_library', label: 'Rolls' },
+  profile: { ios: 'person.crop.circle', material: 'account_circle', label: 'Profile' },
+} as const;
+
+function FloatingTabBar({ state, navigation }: TabBarProps) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  function renderTab(name: keyof typeof TABS) {
+    const index = state.routes.findIndex((r) => r.name === name);
+    const route = state.routes[index];
+    const isFocused = state.index === index;
+    const tab = TABS[name];
+    const color = isFocused ? C.onSurface : C.textMuted;
+
+    return (
+      <Pressable
+        key={name}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isFocused }}
+        accessibilityLabel={tab.label}
+        style={styles.tab}
+        onPress={() => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
+        }}>
+        <Icon ios={tab.ios} material={tab.material} size={22} color={color} />
+        <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+      </Pressable>
+    );
+  }
+
   return (
-    <View style={styles.createIcon}>
-      <Icon ios="plus" material="add" size={20} color={C.onPrimary} />
+    <View pointerEvents="box-none" style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) }]}>
+      <View style={styles.bar}>
+        {renderTab('index')}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="New roll"
+          style={({ pressed }) => [styles.create, pressed && styles.pressed]}
+          onPress={() => router.push('/create/new')}>
+          <Icon ios="plus" material="add" size={26} color={C.onPrimary} />
+        </Pressable>
+        {renderTab('profile')}
+      </View>
     </View>
   );
 }
 
 export default function TabLayout() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: [styles.tabBar, { height: TAB_BAR_HEIGHT + insets.bottom }],
-        tabBarActiveTintColor: C.primary,
-        tabBarInactiveTintColor: C.onSurfaceVariant,
-        tabBarLabelStyle: styles.tabLabel,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Icon ios="house.fill" material="home" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create-placeholder"
-        options={{
-          title: 'New roll',
-          tabBarIcon: () => <CreateIcon />,
-          tabBarActiveTintColor: C.onSurface,
-          tabBarInactiveTintColor: C.onSurface,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/create/event-name');
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <Icon ios="person.crop.circle" material="account_circle" color={color} />
-          ),
-        }}
-      />
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <FloatingTabBar {...props} />}>
+      <Tabs.Screen name="index" options={{ title: 'Rolls' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: C.surfaceLow,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: C.outlineVariant,
+  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    borderRadius: 32,
+    backgroundColor: 'rgba(28,28,30,0.96)',
+    borderWidth: 1,
+    borderColor: C.hairline,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    elevation: 16,
   },
-  tabLabel: {
-    fontFamily: Fonts.hanken,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-  },
-  createIcon: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
+  tab: { width: 76, height: 52, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  tabLabel: { fontFamily: Fonts.hanken, fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  create: {
+    width: 60,
+    height: 52,
+    borderRadius: 18,
     backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
 });
