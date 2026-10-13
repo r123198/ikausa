@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CoverImage } from '@/components/cover-image';
 import { Icon } from '@/components/icon';
 import { InviteSheet } from '@/components/invite-sheet';
+import { Wordmark } from '@/components/logo';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, FloatingTabBarSpace, T } from '@/constants/theme';
 import { useUserId } from '@/context/auth-context';
@@ -109,7 +110,7 @@ function StartCard({ width }: { width: number }) {
         { width },
         pressed && styles.pressed,
       ]}
-      onPress={() => router.push('/create/new')}>
+      onPress={() => router.push('/create/name')}>
       <View style={styles.startIcon}>
         <Icon ios="plus" material="add" size={24} color={C.onPrimary} />
       </View>
@@ -156,7 +157,9 @@ function AlbumRow({ event, userId, urls, stripWidth }: AlbumRowProps) {
       </View>
 
       {previews.length === 0 ? (
-        <Text style={styles.noPhotos}>No photos yet</Text>
+        <Text style={styles.noPhotos}>
+          {eventPhase(event) === 'expired' ? 'Export closed · photos removed' : 'No photos yet'}
+        </Text>
       ) : (
         <View style={styles.strip}>
           {previews.map((url, i) => (
@@ -209,9 +212,8 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={reload} tintColor={C.primary} />
         }>
-        <View style={styles.brand} accessibilityRole="header">
-          <Icon ios="asterisk" material="asterisk" size={26} color={C.primary} />
-          <Text style={styles.brandText}>Ikausa</Text>
+        <View style={styles.brand}>
+          <Wordmark />
         </View>
 
         {error && <Text style={styles.inlineError}>{error}</Text>}
@@ -274,8 +276,7 @@ const styles = StyleSheet.create({
   pressedDim: { opacity: 0.9 },
   disabled: { opacity: 0.4 },
 
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 16, paddingBottom: 28 },
-  brandText: { ...T.headlineLgMobile, fontSize: 34, lineHeight: 40 },
+  brand: { paddingTop: 16, paddingBottom: 28 },
   inlineError: { ...T.caption, color: C.error, marginBottom: 12 },
   eyebrow: { ...T.eyebrow, marginBottom: 14 },
 

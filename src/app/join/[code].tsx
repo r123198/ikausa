@@ -56,11 +56,13 @@ export default function JoinScreen() {
         router.replace({ pathname: '/join/limit-reached', params: { name: preview!.name } });
         return;
       }
-      setJoinError(
-        e instanceof JoinError && e.reason === 'event_ended'
-          ? 'This roll has already ended.'
-          : errorMessage(e)
-      );
+      if (e instanceof JoinError && e.reason === 'event_ended') {
+        setJoinError('This roll has already ended.');
+      } else if (e instanceof JoinError && e.reason === 'too_many_attempts') {
+        setJoinError('Too many invalid codes. Wait an hour, then try again.');
+      } else {
+        setJoinError(errorMessage(e));
+      }
     } finally {
       setIsJoining(false);
     }

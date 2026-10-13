@@ -8,8 +8,8 @@ const ROTATIONS = ['-10deg', '-4deg', '4deg'];
 const OFFSETS = [0, 14, 28];
 
 interface FannedPhotosProps {
-  /** Most recent first. Missing slots render as blank film frames. */
-  urls: string[];
+  /** Most recent first: remote/file uris or bundled images. Missing slots render blank. */
+  urls: (string | number)[];
   size?: number;
 }
 
@@ -33,7 +33,13 @@ export function FannedPhotos({ urls, size = 52 }: FannedPhotosProps) {
               transform: [{ rotate: ROTATIONS[i] }],
             },
           ]}>
-          {url && <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="cover" />}
+          {url !== null && (
+            <Image
+              source={typeof url === 'string' ? { uri: url } : url}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+          )}
         </View>
       ))}
     </View>

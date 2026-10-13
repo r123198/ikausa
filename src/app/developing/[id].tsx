@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { PulsingLogo } from '@/components/logo';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
 import { useFocusedAsync } from '@/hooks/use-async';
@@ -48,6 +49,7 @@ export default function DevelopingScreen() {
         </View>
 
         <View style={styles.content}>
+          <PulsingLogo size={48} />
           <View style={styles.badge}>
             <Text style={styles.badgeText} numberOfLines={1}>
               {event.name}

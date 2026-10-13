@@ -15,6 +15,7 @@ import { useUserId } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import { eventPhase, fetchEvent, fetchPhotos, shotsLeft, uploadPhoto } from '@/lib/events';
+import { filmById } from '@/lib/film/films';
 import { timeUntil } from '@/lib/format';
 
 const PHOTO_QUALITY = 0.8;
@@ -61,7 +62,7 @@ export default function CameraScreen() {
     try {
       const picture = await cameraRef.current.takePictureAsync({ quality: PHOTO_QUALITY });
       setJustTaken((shots) => [picture.uri, ...shots]);
-      await uploadPhoto(event.id, userId, picture.uri);
+      await uploadPhoto(event.id, userId, picture.uri, event.cameraId);
     } catch (e) {
       const message = errorMessage(e);
       setJustTaken((shots) => shots.slice(1));
@@ -124,7 +125,7 @@ export default function CameraScreen() {
             <View style={styles.timeLine}>
               <Icon ios="clock" material="schedule" size={13} color={C.textMuted} />
               <Text style={styles.time}>
-                {isLive ? `${timeUntil(event.endsAt, now)} left` : 'Ended'}
+                {isLive ? `${timeUntil(event.endsAt, now)} left` : 'Ended'} · {filmById(event.cameraId).name}
               </Text>
             </View>
           </View>

@@ -53,7 +53,7 @@ function FloatingTabBar({ state, navigation }: TabBarProps) {
           accessibilityRole="button"
           accessibilityLabel="New roll"
           style={({ pressed }) => [styles.create, pressed && styles.pressed]}
-          onPress={() => router.push('/create/new')}>
+          onPress={() => router.push('/create/name')}>
           <Icon ios="plus" material="add" size={26} color={C.onPrimary} />
         </Pressable>
         {renderTab('profile')}

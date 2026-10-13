@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { resetCreateEventState } from '@/context/create-event-context';
+import { syncPurchasesUser } from '@/lib/purchases';
 import { supabase } from '@/lib/supabase';
 
 interface AuthContextValue {
@@ -30,6 +31,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    // Purchases are attributed to this id in RevenueCat webhooks.
+    syncPurchasesUser(userId);
+  }, [userId]);
 
   return <AuthContext.Provider value={{ session, isReady }}>{children}</AuthContext.Provider>;
 }

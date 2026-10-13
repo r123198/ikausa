@@ -1,12 +1,13 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PulsingLogo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { C, T } from '@/constants/theme';
 
 export function LoadingState() {
   return (
-    <View style={styles.center} accessibilityLabel="Loading">
-      <ActivityIndicator color={C.primary} />
+    <View style={styles.center} accessibilityLabel="Loading" accessibilityRole="progressbar">
+      <PulsingLogo />
     </View>
   );
 }
@@ -22,7 +23,14 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 12,
+    backgroundColor: C.background,
+  },
   title: { ...T.headlineMd, fontSize: 22, textAlign: 'center' },
   message: { ...T.bodyMd, fontSize: 15, color: C.onSurfaceVariant, textAlign: 'center' },
 });

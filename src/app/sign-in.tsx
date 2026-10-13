@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { C, T } from '@/constants/theme';
 import { errorMessage } from '@/hooks/use-async';
@@ -104,6 +105,7 @@ export default function SignInScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
+            <Logo size={64} />
             <Text style={styles.title}>{isSignUp ? 'Create your account' : 'Welcome back'}</Text>
             <Text style={styles.subtitle}>
               {isSignUp
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 20 },
 
-  header: { gap: 8, marginBottom: 8 },
+  header: { gap: 12, marginBottom: 8 },
   title: { ...T.headlineLgMobile },
   subtitle: { ...T.bodyMd, color: C.onSurfaceVariant },
 

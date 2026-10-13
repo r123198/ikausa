@@ -31,7 +31,12 @@ function RootStack() {
         <Stack.Screen name="camera/[id]" />
         <Stack.Screen name="developing/[id]" />
         <Stack.Screen name="join/limit-reached" />
-        <Stack.Screen name="create/new" />
+        <Stack.Screen name="create/name" />
+        <Stack.Screen name="create/finish" />
+        <Stack.Screen name="create/reveal" />
+        <Stack.Screen name="create/camera" />
+        <Stack.Screen name="create/cover" />
+        <Stack.Screen name="create/guests" />
       </Stack.Protected>
       {/* Reachable signed out: invite links preview the event before sign-in. */}
       <Stack.Screen name="sign-in" />

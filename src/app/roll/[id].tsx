@@ -55,6 +55,8 @@ function emptyMessage(phase: EventPhase): string {
       return 'No shots yet. Open the camera to take the first one.';
     case 'developing':
       return 'The film is developing. Photos appear here once the roll is revealed.';
+    case 'expired':
+      return 'The export window has closed, so these photos are no longer available.';
     default:
       return 'No photos on this roll.';
   }

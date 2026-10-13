@@ -1,3 +1,4 @@
+import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -14,19 +15,25 @@ export interface HeroStat {
 
 interface RollHeroProps {
   cover: string | null;
+  /** Local image to show instead of `cover`, e.g. while designing a new roll. */
+  coverSource?: ImageSource | number;
   eyebrow?: string;
   title: string;
   stats: HeroStat[];
 }
 
 /** Full-bleed cover fading into the page, with a centered serif title and italic stats. */
-export function RollHero({ cover, eyebrow, title, stats }: RollHeroProps) {
+export function RollHero({ cover, coverSource, eyebrow, title, stats }: RollHeroProps) {
   const { height } = useWindowDimensions();
   const heroHeight = Math.min(height * HERO_HEIGHT_RATIO, HERO_MAX_HEIGHT);
 
   return (
     <View style={{ height: heroHeight }}>
-      <CoverImage cover={cover} style={StyleSheet.absoluteFill} />
+      {coverSource ? (
+        <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : (
+        <CoverImage cover={cover} style={StyleSheet.absoluteFill} />
+      )}
       <LinearGradient
         colors={['rgba(15,15,16,0.15)', 'rgba(15,15,16,0.35)', C.background]}
         locations={[0, 0.5, 1]}

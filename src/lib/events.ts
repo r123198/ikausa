@@ -1,9 +1,9 @@
+import { developPhoto } from '@/lib/film/develop';
+import { randomId, uploadImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
 const MEDIA_BUCKET = 'event-media';
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
-/** Mirrors the bucket's file_size_limit. */
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export type RevealOption = 'during' | 'after' | 'delay';
 export type ExportDays = 7 | 30 | 90;
@@ -110,6 +110,7 @@ export async function fetchEvent(id: string): Promise<EventSummary | null> {
 
 export interface NewEventInput {
   name: string;
+  passId: string;
   endsAt: Date;
   revealOption: RevealOption;
   exportDays: ExportDays;
@@ -123,6 +124,7 @@ export interface NewEventInput {
 
 export interface CreatedEvent {
   id: string;
+  inviteCode: string;
   /** False when a custom cover was chosen but couldn't be uploaded. */
   coverUploaded: boolean;
 }
@@ -132,6 +134,7 @@ export async function createEvent(input: NewEventInput): Promise<CreatedEvent> {
     .from('events')
     .insert({
       name: input.name,
+      pass_id: input.passId,
       ends_at: input.endsAt.toISOString(),
       reveal_option: input.revealOption,
       export_days: input.exportDays,
@@ -141,15 +144,15 @@ export async function createEvent(input: NewEventInput): Promise<CreatedEvent> {
       camera_id: input.cameraId,
       cover: input.cover.kind === 'preset' ? `preset:${input.cover.id}` : null,
     })
-    .select('id')
+    .select('id, invite_code')
     .single();
-  if (error) throw error;
+  if (error) throw new Error(createEventErrorMessage(error.message));
 
   if (input.cover.kind === 'uri') {
     // The event exists either way; a failed cover upload leaves it without one.
     try {
       const path = `${data.id}/cover/${randomId()}.jpg`;
-      await uploadImage(path, input.cover.uri);
+      await uploadImage(MEDIA_BUCKET, path, input.cover.uri);
       const { error: updateError } = await supabase
         .from('events')
         .update({ cover: path })
@@ -157,11 +160,23 @@ export async function createEvent(input: NewEventInput): Promise<CreatedEvent> {
       if (updateError) throw updateError;
     } catch (coverError) {
       console.error('Cover upload failed', coverError);
-      return { id: data.id, coverUploaded: false };
+      return { id: data.id, inviteCode: data.invite_code, coverUploaded: false };
     }
   }
 
-  return { id: data.id, coverUploaded: true };
+  return { id: data.id, inviteCode: data.invite_code, coverUploaded: true };
+}
+
+const CREATE_ERRORS: Record<string, string> = {
+  pass_required: 'This plan needs a pass. Buy one first, then start the roll.',
+  pass_limit_participants: 'Too many participants for this plan.',
+  pass_limit_shots: 'Too many shots per person for this plan.',
+  unknown_pass: 'That plan is no longer available.',
+};
+
+function createEventErrorMessage(message: string): string {
+  const code = Object.keys(CREATE_ERRORS).find((key) => message.includes(key));
+  return code ? CREATE_ERRORS[code] : message;
 }
 
 /* ------------------------------------------------------------------ */
@@ -202,7 +217,7 @@ export async function fetchEventPreview(code: string): Promise<EventPreview | nu
   };
 }
 
-export type JoinFailure = 'event_not_found' | 'event_ended' | 'event_full';
+export type JoinFailure = 'event_not_found' | 'event_ended' | 'event_full' | 'too_many_attempts';
 
 export class JoinError extends Error {
   constructor(public readonly reason: JoinFailure) {
@@ -213,12 +228,14 @@ export class JoinError extends Error {
 export async function joinEvent(code: string): Promise<string> {
   const { data, error } = await supabase.rpc('join_event', { code });
   if (error) {
-    const reason = (['event_not_found', 'event_ended', 'event_full'] as const).find((r) =>
+    const reason = (['event_ended', 'event_full', 'too_many_attempts'] as const).find((r) =>
       error.message.includes(r)
     );
     if (reason) throw new JoinError(reason);
     throw error;
   }
+  // Unknown codes return null so the server can count the failed attempt.
+  if (!data) throw new JoinError('event_not_found');
   return data as string;
 }
 
@@ -240,6 +257,7 @@ export async function fetchPhotos(eventId: string): Promise<Photo[]> {
     .from('photos')
     .select('id, user_id, storage_path, created_at, profiles(display_name)')
     .eq('event_id', eventId)
+    .eq('status', 'ready')
     .order('created_at', { ascending: false });
   if (error) throw error;
   if (data.length === 0) return [];
@@ -256,11 +274,52 @@ export async function fetchPhotos(eventId: string): Promise<Photo[]> {
   }));
 }
 
-export async function uploadPhoto(eventId: string, userId: string, uri: string): Promise<void> {
-  const path = `${eventId}/photos/${userId}/${randomId()}.jpg`;
-  await uploadImage(path, uri);
-  const { error } = await supabase.from('photos').insert({ event_id: eventId, storage_path: path });
-  if (error) throw error;
+/** Develops with the roll's look; falls back to the untouched shot if that fails. */
+async function developOrNull(uri: string, filmId: string): Promise<string | null> {
+  try {
+    return await developPhoto(uri, filmId);
+  } catch (error) {
+    console.error('Developing failed, keeping the original', error);
+    return null;
+  }
+}
+
+/**
+ * Develop the shot with the roll's film look, reserve it (enforces the shot
+ * limit), upload the original and developed files, then mark it ready.
+ * A failed upload releases the reservation.
+ */
+export async function uploadPhoto(
+  eventId: string,
+  userId: string,
+  uri: string,
+  filmId: string
+): Promise<void> {
+  const base = `${eventId}/photos/${userId}/${randomId()}`;
+  const developedUri = await developOrNull(uri, filmId);
+  const path = `${base}.jpg`;
+  const originalPath = developedUri ? `${base}-original.jpg` : null;
+
+  const { data: reserved, error: reserveError } = await supabase
+    .from('photos')
+    .insert({ event_id: eventId, storage_path: path, original_path: originalPath })
+    .select('id')
+    .single();
+  if (reserveError) throw reserveError;
+
+  try {
+    if (originalPath) await uploadImage(MEDIA_BUCKET, originalPath, uri);
+    await uploadImage(MEDIA_BUCKET, path, developedUri ?? uri);
+  } catch (error) {
+    // Nothing was stored, so release the shot right away.
+    const { error: cancelError } = await supabase.from('photos').delete().eq('id', reserved.id);
+    if (cancelError) console.error('Could not release reserved shot', cancelError);
+    throw error;
+  }
+
+  // If this fails the row stays pending; the scheduled cleanup removes the row and file.
+  const { error: readyError } = await supabase.rpc('mark_photo_ready', { photo_id: reserved.id });
+  if (readyError) throw readyError;
 }
 
 /** Signed URLs that make the browser download instead of display. */
@@ -291,32 +350,4 @@ export async function signedUrls(paths: string[]): Promise<Map<string, string>> 
     .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
   if (error) throw error;
   return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl]] : [])));
-}
-
-async function uploadImage(path: string, uri: string): Promise<void> {
-  const body = await readBytes(uri);
-  const { error } = await supabase.storage
-    .from(MEDIA_BUCKET)
-    .upload(path, body, { contentType: 'image/jpeg', upsert: false });
-  if (error) throw error;
-}
-
-async function readBytes(uri: string): Promise<ArrayBuffer> {
-  if (uri.startsWith('file:')) {
-    const { File } = await import('expo-file-system');
-    return new File(uri).arrayBuffer();
-  }
-  // data: and http(s): URIs (web capture, pasted links).
-  const response = await fetch(uri);
-  if (!response.ok) throw new Error(`Could not read image (${response.status})`);
-  if (!response.headers.get('content-type')?.startsWith('image/')) {
-    throw new Error('That link is not an image.');
-  }
-  const bytes = await response.arrayBuffer();
-  if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image is larger than 10 MB.');
-  return bytes;
-}
-
-function randomId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

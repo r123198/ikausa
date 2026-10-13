@@ -1,0 +1,68 @@
+{
+  "lutSize": 32,
+  "looks": [
+    {
+      "id": "original",
+      "name": "Original",
+      "desc": "Clean, true-to-life colour. Crisp tones that keep the moment exactly as it was.",
+      "body": "#f2f2f4",
+      "stripe": "#d9d9de",
+      "vignette": 0,
+      "grain": 0
+    },
+    {
+      "id": "disposable",
+      "name": "Disposable",
+      "desc": "Warm, punchy colour with green-tinted shadows and grain, like a drugstore film camera.",
+      "body": "#1c1c1e",
+      "stripe": "#3f7d4f",
+      "vignette": 0.35,
+      "grain": 0.06,
+      "grade": {
+        "warmth": 0.9,
+        "tint": 0.2,
+        "contrast": 1.18,
+        "saturation": 1.12,
+        "fade": 0.04,
+        "shadowTint": [-0.02, 0.035, 0.0],
+        "highlightTint": [0.045, 0.02, -0.04]
+      }
+    },
+    {
+      "id": "polaroid",
+      "name": "Polaroid",
+      "desc": "Soft, faded instant-film tones with creamy highlights and cool shadows.",
+      "body": "#ece6da",
+      "stripe": "#c94f3d",
+      "vignette": 0.2,
+      "grain": 0.03,
+      "grade": {
+        "warmth": 0.5,
+        "tint": -0.1,
+        "contrast": 0.88,
+        "saturation": 0.82,
+        "fade": 0.12,
+        "shadowTint": [-0.02, 0.01, 0.04],
+        "highlightTint": [0.05, 0.035, -0.03]
+      }
+    },
+    {
+      "id": "pinhole",
+      "name": "Pinhole",
+      "desc": "Moody, muted colour with deep contrast and a heavy dreamy vignette.",
+      "body": "#0b0b0c",
+      "stripe": "#6b6b70",
+      "vignette": 0.7,
+      "grain": 0.08,
+      "grade": {
+        "warmth": 0.35,
+        "tint": 0,
+        "contrast": 1.28,
+        "saturation": 0.55,
+        "fade": 0.06,
+        "shadowTint": [0.01, 0.0, -0.01],
+        "highlightTint": [0.03, 0.02, 0.0]
+      }
+    }
+  ]
+}
