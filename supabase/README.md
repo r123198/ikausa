@@ -12,6 +12,7 @@ Run each file in `migrations/` once, in filename order, in **SQL Editor → New 
 4. `20261013000003_passes_and_hardening.sql`: paid passes, upload reservations, export window, join limits
 5. `20261013000004_photo_originals.sql`: keeps the untouched original next to each film-developed photo
 6. `20261013000005_profile_and_account.sql`: profile photos and self-service account deletion
+7. `20261014000000_shot_tiers_and_top_ups.sql`: plans priced by guests × shots, and shot packs bought during a roll
 
 ## 2. Edge Functions
 
@@ -38,12 +39,27 @@ In **Integrations → Cron → Create job**, run every hour:
 
 It deletes photos 7 days after a roll's export window closes, and uploads that were reserved but never finished.
 
-## 4. RevenueCat (paid passes)
+## 4. RevenueCat (paid passes and shot packs)
 
-1. In App Store Connect and Google Play Console, create three **consumable** in-app products:
-   `ikausa_pass_party`, `ikausa_pass_big_day`, `ikausa_pass_unlimited`.
-   (Ids must match `passes.revenuecat_product_id`; edit the table if you choose different ones.)
-2. Add the products to your RevenueCat project. No entitlements needed: passes are credits, not access levels.
+1. In App Store Connect and Google Play Console, create these **consumable** in-app products:
+   - Roll plans (guests × shots per person):
+
+     | Product | Guests | Shots each |
+     |---|---|---|
+     | `ikausa_pass_party_36` | 25 | 36 |
+     | `ikausa_pass_party` | 25 | unlimited |
+     | `ikausa_pass_big_day_36` | 100 | 36 |
+     | `ikausa_pass_big_day` | 100 | unlimited |
+     | `ikausa_pass_unlimited_36` | unlimited | 36 |
+     | `ikausa_pass_unlimited` | unlimited | unlimited |
+
+   - Shot packs, bought by any member when they run out: `ikausa_shots_10`, `ikausa_shots_24`.
+
+   Ids must match `passes.revenuecat_product_id` / `shot_packs.revenuecat_product_id`; edit the tables
+   to change the catalog. Keep `passes.sort` in price order: the app picks the first plan that covers
+   the guests and shots the host chose. `display_price` is only a fallback label for when store prices
+   can't load.
+2. Add the products to your RevenueCat project. No entitlements or offerings needed: passes and packs are credits, not access levels.
 3. **Integrations → Webhooks** in RevenueCat:
    - URL: `https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`
    - Authorization header value: exactly your `REVENUECAT_WEBHOOK_SECRET`
@@ -59,3 +75,12 @@ Purchases need a development build (`npx expo run:ios` / `run:android`); Expo Go
 2. RevenueCat sends `NON_RENEWING_PURCHASE` to the webhook, which adds a row to `pass_credits`.
 3. The app waits for that credit, then creates the roll. The database spends the credit and enforces the plan's limits.
 4. A refund arrives as `CANCELLATION` and revokes the credit if it hasn't been used yet.
+
+### How a shot pack adds shots
+
+1. A member who is out of shots taps **Get more shots** on the camera and buys a pack.
+2. The webhook adds a row to `shot_pack_credits`.
+3. The app calls `apply_shot_pack(event, pack)`, which ties the credit to that roll. The member's limit
+   becomes the roll's shots per person plus their applied packs. A pack bought but not applied (for
+   example if the app closed) shows as "owned" next time and can be used on any live roll.
+4. A refunded pack stops counting toward the limit; shots already taken stay.

@@ -1,15 +1,23 @@
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
-
-import { fetchCredits } from '@/lib/passes';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
 const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY;
 const CREDIT_POLL_INTERVAL_MS = 2000;
 const CREDIT_POLL_TIMEOUT_MS = 45_000;
 
-const apiKey = Platform.OS === 'ios' ? IOS_KEY : Platform.OS === 'android' ? ANDROID_KEY : undefined;
+/** Expo Go lacks RevenueCat's native module; purchases need a development build. */
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-/** Passes are sold through the App Store / Play Store only, so not on web. */
+const apiKey = isExpoGo
+  ? undefined
+  : Platform.OS === 'ios'
+    ? IOS_KEY
+    : Platform.OS === 'android'
+      ? ANDROID_KEY
+      : undefined;
+
+/** Passes are sold through the App Store / Play Store only, so not on web or in Expo Go. */
 export const canPurchase = Boolean(apiKey);
 
 let configuredFor: string | null = null;
@@ -56,10 +64,10 @@ export async function fetchStorePrices(productIds: string[]): Promise<Map<string
 export type PurchaseOutcome = 'purchased' | 'cancelled';
 
 export async function buyProduct(productId: string): Promise<PurchaseOutcome> {
-  if (!apiKey) throw new Error('Passes can only be bought in the mobile app.');
+  if (!apiKey) throw new Error('Purchases are only available in the mobile app.');
   const Purchases = await sdk();
   const [product] = await Purchases.getProducts([productId], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
-  if (!product) throw new Error('This pass is not available in the store right now.');
+  if (!product) throw new Error('This isn’t available in the store right now.');
   try {
     await Purchases.purchaseStoreProduct(product);
     return 'purchased';
@@ -73,13 +81,17 @@ export async function buyProduct(productId: string): Promise<PurchaseOutcome> {
 
 /**
  * The credit is granted by our webhook, not the app, so wait for it to land.
- * Resolves true once at least `previousCount + 1` credits exist for the pass.
+ * Resolves true once `fetchCounts` reports more than `previousCount` for `id`.
  */
-export async function waitForCredit(passId: string, previousCount: number): Promise<boolean> {
+export async function waitForCredit(
+  fetchCounts: () => Promise<Map<string, number>>,
+  id: string,
+  previousCount: number
+): Promise<boolean> {
   const deadline = Date.now() + CREDIT_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const credits = await fetchCredits();
-    if ((credits.get(passId) ?? 0) > previousCount) return true;
+    const credits = await fetchCounts();
+    if ((credits.get(id) ?? 0) > previousCount) return true;
     await new Promise((resolve) => setTimeout(resolve, CREDIT_POLL_INTERVAL_MS));
   }
   return false;

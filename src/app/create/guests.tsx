@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ConfirmPaidDialog } from '@/components/create/confirm-paid-dialog';
 import { CreatedDialog } from '@/components/create/created-dialog';
 import { WizardScreen } from '@/components/create/wizard-screen';
 import { FannedPhotos } from '@/components/fanned-photos';
@@ -9,7 +10,7 @@ import { FilmCounter } from '@/components/film-counter';
 import { Icon } from '@/components/icon';
 import { Toggle } from '@/components/ui/toggle';
 import { C, T } from '@/constants/theme';
-import { FREE_PASS_ID, SHOT_OPTIONS, useCreateEvent } from '@/context/create-event-context';
+import { FREE_PASS_ID, SHOT_OPTIONS, useCreateEvent, type ShotOption } from '@/context/create-event-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { createEvent, type CreatedEvent } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
@@ -32,9 +33,32 @@ async function loadPlans() {
   return { passes, credits, prices };
 }
 
-function shotAllowed(value: number | 'unlimited', pass: Pass): boolean {
+type GuestLimit = number | null;
+
+function shotAllowed(value: ShotOption['value'], pass: Pass): boolean {
   if (pass.maxShotsPerPerson === null) return true;
   return value !== 'unlimited' && value <= pass.maxShotsPerPerson;
+}
+
+function guestsAllowed(guests: GuestLimit, pass: Pass): boolean {
+  if (pass.maxParticipants === null) return true;
+  return guests !== null && guests <= pass.maxParticipants;
+}
+
+/** Distinct guest limits on offer, smallest first, unlimited last. */
+function guestTiers(passes: Pass[]): GuestLimit[] {
+  const tiers = [...new Set(passes.map((p) => p.maxParticipants))];
+  return tiers.sort((a, b) => (a ?? Infinity) - (b ?? Infinity));
+}
+
+/** Passes are sorted by price, so the first one that covers the choice is the cheapest. */
+function cheapestPass(passes: Pass[], guests: GuestLimit, shots: ShotOption['value']): Pass | undefined {
+  return passes.find((p) => guestsAllowed(guests, p) && shotAllowed(shots, p));
+}
+
+/** Largest shot option a pass allows, used when a smaller plan can't fit the current pick. */
+function largestShotOption(pass: Pass): ShotOption {
+  return [...SHOT_OPTIONS].reverse().find((o) => shotAllowed(o.value, pass)) ?? SHOT_OPTIONS[0];
 }
 
 export default function GuestsStep() {
@@ -43,6 +67,7 @@ export default function GuestsStep() {
   const plans = useFocusedAsync(loadPlans, []);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConfirmingPaid, setIsConfirmingPaid] = useState(false);
   const [created, setCreated] = useState<{ event: CreatedEvent; name: string } | null>(null);
 
   const passes = plans.data?.passes ?? [FALLBACK_FREE_PASS];
@@ -58,10 +83,21 @@ export default function GuestsStep() {
   const film = filmById(draft.cameraId);
   const shotsTotal = draft.selectedShot.value === 'unlimited' ? null : draft.selectedShot.value;
 
-  function selectPass(next: Pass) {
+  function selectGuests(guests: GuestLimit) {
+    const tier = passes.filter((p) => p.maxParticipants === guests);
+    const next = tier.find((p) => shotAllowed(draft.selectedShot.value, p)) ?? tier.at(-1);
+    if (!next) return;
     draft.setPassId(next.id);
     // Keep the shot count inside the new plan's limit.
-    if (!shotAllowed(draft.selectedShot.value, next)) draft.setShotOptionId('24');
+    if (!shotAllowed(draft.selectedShot.value, next)) draft.setShotOptionId(largestShotOption(next).id);
+  }
+
+  function selectShots(option: ShotOption) {
+    // More shots may need a bigger plan; fewer may allow a cheaper one.
+    const next = cheapestPass(passes, pass.maxParticipants, option.value);
+    if (!next) return;
+    draft.setPassId(next.id);
+    draft.setShotOptionId(option.id);
   }
 
   function nextLabel(): string {
@@ -70,23 +106,37 @@ export default function GuestsStep() {
     return `Buy ${pass.name}`;
   }
 
+  function validationError(): string | null {
+    if (draft.name.trim().length === 0) return 'Give your roll a name first.';
+    if (draft.endsAt <= new Date()) return 'The closing time has passed. Go back and pick a later one.';
+    return null;
+  }
+
+  /** Paid rolls get a final check first, since their settings are locked once created. */
+  function handleNext() {
+    const problem = validationError();
+    setError(problem);
+    if (problem) return;
+    if (isPaid) setIsConfirmingPaid(true);
+    else void handleCreate();
+  }
+
+  function confirmPaid() {
+    setIsConfirmingPaid(false);
+    // The closing time may have passed while the dialog was open.
+    const problem = validationError();
+    setError(problem);
+    if (!problem) void handleCreate();
+  }
+
   async function handleCreate() {
-    if (draft.name.trim().length === 0) {
-      setError('Give your roll a name first.');
-      return;
-    }
-    if (draft.endsAt <= new Date()) {
-      setError('The closing time has passed. Go back and pick a later one.');
-      return;
-    }
-    setError(null);
     try {
       if (needsPurchase) {
         setBusyLabel('Opening store…');
         const outcome = await buyProduct(pass.productId!);
         if (outcome === 'cancelled') return;
         setBusyLabel('Confirming…');
-        const isConfirmed = await waitForCredit(pass.id, owned);
+        const isConfirmed = await waitForCredit(fetchCredits, pass.id, owned);
         plans.reload();
         if (!isConfirmed) {
           setError('Payment received. We’re still confirming it. Tap Create again in a minute.');
@@ -136,7 +186,7 @@ export default function GuestsStep() {
       isBusy={busyLabel !== null}
       canContinue={!needsPurchase || canPurchase}
       footerNote={error ?? (needsPurchase && !canPurchase ? 'Paid plans can be bought in the iOS or Android app.' : null)}
-      onNext={handleCreate}>
+      onNext={handleNext}>
       <View style={styles.planHeader}>
         <Text style={styles.planTitle}>
           {pass.maxParticipants === null ? 'Unlimited\nParticipants' : `Up to\n${pass.maxParticipants} Participants`}
@@ -144,22 +194,20 @@ export default function GuestsStep() {
         <Text style={styles.price}>{priceLabel}</Text>
       </View>
       <View style={styles.passes} accessibilityRole="radiogroup">
-        {passes.map((p) => {
-          const isSelected = p.id === pass.id;
+        {guestTiers(passes).map((guests) => {
+          const isSelected = guests === pass.maxParticipants;
           return (
             <Pressable
-              key={p.id}
+              key={guests ?? 'unlimited'}
               accessibilityRole="radio"
-              accessibilityLabel={`${p.name}: ${passSummary(p)}`}
+              accessibilityLabel={guests === null ? 'Unlimited people' : `Up to ${guests} people`}
               accessibilityState={{ checked: isSelected }}
               style={({ pressed }) => [styles.passBox, isSelected && styles.passBoxActive, pressed && styles.pressed]}
-              onPress={() => selectPass(p)}>
+              onPress={() => selectGuests(guests)}>
               {isSelected ? (
                 <Icon ios="person.fill" material="person" size={20} color={C.primary} />
               ) : (
-                <Text style={styles.passBoxLabel}>
-                  {p.maxParticipants === null ? '∞' : p.maxParticipants}
-                </Text>
+                <Text style={styles.passBoxLabel}>{guests === null ? '∞' : guests}</Text>
               )}
             </Pressable>
           );
@@ -178,7 +226,7 @@ export default function GuestsStep() {
         <FannedPhotos urls={film.samples} size={40} />
       </View>
       <View style={styles.shots} accessibilityRole="radiogroup">
-        {SHOT_OPTIONS.filter((o) => shotAllowed(o.value, pass)).map((o) => {
+        {SHOT_OPTIONS.filter((o) => cheapestPass(passes, pass.maxParticipants, o.value)).map((o) => {
           const isSelected = o.id === draft.shotOptionId;
           return (
             <Pressable
@@ -187,7 +235,7 @@ export default function GuestsStep() {
               accessibilityLabel={o.value === 'unlimited' ? 'Unlimited shots' : `${o.value} shots`}
               accessibilityState={{ checked: isSelected }}
               style={({ pressed }) => [styles.shotBox, isSelected && styles.shotBoxActive, pressed && styles.pressed]}
-              onPress={() => draft.setShotOptionId(o.id)}>
+              onPress={() => selectShots(o)}>
               <Text style={[styles.shotText, isSelected && styles.shotTextActive]}>
                 {o.value === 'unlimited' ? '∞' : o.value}
               </Text>
@@ -210,6 +258,24 @@ export default function GuestsStep() {
         </Text>
       </View>
 
+      {isConfirmingPaid && (
+        <ConfirmPaidDialog
+          summary={{
+            name: draft.name.trim(),
+            endsAt: draft.endsAt,
+            revealOption: draft.revealOption,
+            exportDays: draft.exportDays,
+            maxParticipants: pass.maxParticipants,
+            shotsPerPerson: shotsTotal,
+            everyoneCanSee: draft.everyoneCanSee,
+            planName: pass.name,
+            priceLabel,
+          }}
+          confirmLabel={needsPurchase ? `Confirm & buy ${pass.name}` : 'Confirm & create roll'}
+          onConfirm={confirmPaid}
+          onCancel={() => setIsConfirmingPaid(false)}
+        />
+      )}
       {created && (
         <CreatedDialog name={created.name} inviteCode={created.event.inviteCode} onDone={openRoll} />
       )}

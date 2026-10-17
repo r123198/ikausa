@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["YOUR_TEAM_ID.com.maalam.ikausa"],
+        "components": [{ "/": "/join/*" }]
+      }
+    ]
+  },
+  "appclips": {
+    "apps": ["YOUR_TEAM_ID.com.maalam.ikausa.clip"]
+  }
+}
