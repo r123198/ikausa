@@ -44,6 +44,27 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+const CREDIT_TABLES = ['pass_credits', 'shot_pack_credits'] as const;
+
+interface CreditTarget {
+  table: (typeof CREDIT_TABLES)[number];
+  row: { pass_id: string } | { pack_id: string };
+  catalogId: string;
+}
+
+/** A product is either a roll pass or a shot pack. */
+async function creditTarget(productId: string): Promise<CreditTarget | null> {
+  const [pass, pack] = await Promise.all([
+    supabase.from('passes').select('id').eq('revenuecat_product_id', productId).maybeSingle(),
+    supabase.from('shot_packs').select('id').eq('revenuecat_product_id', productId).maybeSingle(),
+  ]);
+  if (pass.error) throw pass.error;
+  if (pack.error) throw pack.error;
+  if (pass.data) return { table: 'pass_credits', row: { pass_id: pass.data.id }, catalogId: pass.data.id };
+  if (pack.data) return { table: 'shot_pack_credits', row: { pack_id: pack.data.id }, catalogId: pack.data.id };
+  return null;
+}
+
 async function grantCredit(event: RevenueCatEvent): Promise<Response> {
   const userId = supabaseUserId(event);
   if (!userId) {
@@ -51,33 +72,31 @@ async function grantCredit(event: RevenueCatEvent): Promise<Response> {
     return json({ ignored: 'no_user' });
   }
 
-  const { data: pass, error: passError } = await supabase
-    .from('passes')
-    .select('id')
-    .eq('revenuecat_product_id', event.product_id)
-    .maybeSingle();
-  if (passError) throw passError;
-  if (!pass) {
+  const target = await creditTarget(event.product_id);
+  if (!target) {
     console.error('Unknown product', event.product_id);
     return json({ ignored: 'unknown_product' });
   }
 
   // store_transaction_id is unique, so webhook retries can't double-grant.
-  const { error } = await supabase.from('pass_credits').upsert(
-    { user_id: userId, pass_id: pass.id, store_transaction_id: event.transaction_id },
+  const { error } = await supabase.from(target.table).upsert(
+    { user_id: userId, ...target.row, store_transaction_id: event.transaction_id },
     { onConflict: 'store_transaction_id', ignoreDuplicates: true }
   );
   if (error) throw error;
-  return json({ granted: pass.id });
+  return json({ granted: target.catalogId });
 }
 
 async function revokeCredit(event: RevenueCatEvent): Promise<Response> {
-  const { error } = await supabase
-    .from('pass_credits')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('store_transaction_id', event.transaction_id)
-    .is('revoked_at', null);
-  if (error) throw error;
+  const revokedAt = new Date().toISOString();
+  for (const table of CREDIT_TABLES) {
+    const { error } = await supabase
+      .from(table)
+      .update({ revoked_at: revokedAt })
+      .eq('store_transaction_id', event.transaction_id)
+      .is('revoked_at', null);
+    if (error) throw error;
+  }
   return json({ revoked: event.transaction_id });
 }
 

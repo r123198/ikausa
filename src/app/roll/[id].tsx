@@ -19,6 +19,7 @@ import { RollDetailsSheet } from '@/components/roll-details-sheet';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import {
@@ -88,6 +89,7 @@ function HeaderButton({
 export default function RollScreen() {
   const router = useRouter();
   const { id, notice } = useLocalSearchParams<{ id: string; notice?: string }>();
+  const { session } = useAuth();
   const { width } = useWindowDimensions();
   const now = useNow();
   const [openSheet, setOpenSheet] = useState<'invite' | 'details' | null>(null);
@@ -220,7 +222,16 @@ export default function RollScreen() {
         eventName={event.name}
         inviteCode={event.inviteCode}
       />
-      <RollDetailsSheet visible={openSheet === 'details'} onClose={() => setOpenSheet(null)} event={event} />
+      <RollDetailsSheet
+        visible={openSheet === 'details'}
+        onClose={() => setOpenSheet(null)}
+        event={event}
+        isOwner={event.ownerId === session?.user.id}
+        onDeleted={() => {
+          setOpenSheet(null);
+          router.replace('/');
+        }}
+      />
     </SafeAreaView>
   );
 }

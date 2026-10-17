@@ -8,6 +8,7 @@ import { FannedPhotos } from '@/components/fanned-photos';
 import { FilmCounter } from '@/components/film-counter';
 import { Icon } from '@/components/icon';
 import { InviteSheet } from '@/components/invite-sheet';
+import { ShotPackSheet } from '@/components/shot-pack-sheet';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
@@ -32,6 +33,7 @@ export default function CameraScreen() {
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isShotPackOpen, setIsShotPackOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   /** Shots taken this session, shown instantly before the server list catches up. */
   const [justTaken, setJustTaken] = useState<string[]>([]);
@@ -53,6 +55,7 @@ export default function CameraScreen() {
   const left = shotsLeft(event);
   const isLive = eventPhase(event, now) === 'live';
   const canShoot = isLive && left !== 0 && isReady && !isSaving;
+  const canGetMoreShots = isLive && left === 0;
   const recent = [...justTaken, ...data.myPhotoUrls];
 
   async function handleShutter() {
@@ -143,9 +146,14 @@ export default function CameraScreen() {
         <View style={styles.viewfinder}>
           {renderViewfinder()}
           {(blockedMessage || status) && (
-            <Text style={styles.status} accessibilityLiveRegion="polite">
-              {blockedMessage ?? status}
-            </Text>
+            <View style={styles.notice}>
+              <Text style={styles.status} accessibilityLiveRegion="polite">
+                {blockedMessage ?? status}
+              </Text>
+              {canGetMoreShots && (
+                <Button label="Get more shots" size="sm" onPress={() => setIsShotPackOpen(true)} />
+              )}
+            </View>
           )}
           <View style={styles.viewfinderControls} pointerEvents="box-none">
             <Pressable
@@ -175,8 +183,8 @@ export default function CameraScreen() {
         <View style={styles.controls}>
           <View style={styles.side}>
             <FilmCounter
-              frame={event.shotsPerPerson === null ? null : Math.min(event.myShotCount + 1, event.shotsPerPerson)}
-              total={event.shotsPerPerson}
+              frame={event.myShotLimit === null ? null : Math.min(event.myShotCount + 1, event.myShotLimit)}
+              total={event.myShotLimit}
             />
           </View>
 
@@ -212,6 +220,17 @@ export default function CameraScreen() {
         eventName={event.name}
         inviteCode={event.inviteCode}
       />
+      {isShotPackOpen && (
+        <ShotPackSheet
+          eventId={event.id}
+          onClose={() => setIsShotPackOpen(false)}
+          onDone={() => {
+            setIsShotPackOpen(false);
+            setStatus(null);
+            reload();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -253,12 +272,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
+  notice: { position: 'absolute', top: 16, left: 16, right: 16, alignItems: 'center', gap: 10 },
   status: {
     ...T.caption,
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
+    alignSelf: 'stretch',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,

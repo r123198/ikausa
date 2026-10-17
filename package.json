@@ -9,7 +9,7 @@
     "expo": "~56.0.12",
     "expo-asset": "~56.0.17",
     "expo-camera": "~56.0.8",
-    "expo-clipboard": "~56.0.4",
+    "expo-clipbosrd": "~56.0.4",
     "expo-constants": "~56.0.18",
     "expo-device": "~56.0.4",
     "expo-font": "~56.0.7",
@@ -39,7 +39,10 @@
     "toqr": "^0.1.1"
   },
   "devDependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~56.0.4",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "typescript": "~6.0.3"
@@ -52,5 +55,8 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
+  }
 }

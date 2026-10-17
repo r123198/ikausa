@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>$(PRODUCT_NAME)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleVersion</key>
+  <string>$(CURRENT_PROJECT_VERSION)</string>
+  <key>CFBundleExecutable</key>
+  <string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundlePackageType</key>
+  <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$(MARKETING_VERSION)</string>
+  <key>UIApplicationSupportsIndirectInputEvents</key>
+  <true/>
+  <key>NSAppClip</key>
+  <dict>
+    <key>NSAppClipRequestEphemeralUserNotification</key>
+    <false/>
+    <key>NSAppClipRequestLocationConfirmation</key>
+    <false/>
+  </dict>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <false/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Ikausa uses your camera to take photos for the rolls you join.</string>
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>Ikausa saves exported roll photos to your library.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Ikausa lets you pick a cover photo for your roll.</string>
+  <key>UILaunchStoryboardName</key>
+  <string>SplashScreen</string>
+  <key>UIUserInterfaceStyle</key>
+  <string>Dark</string>
+  <key>UIViewControllerBasedStatusBarAppearance</key>
+  <false/>
+</dict>
+</plist>

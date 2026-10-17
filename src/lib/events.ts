@@ -1,5 +1,5 @@
 import { developPhoto } from '@/lib/film/develop';
-import { randomId, uploadImage } from '@/lib/storage';
+import { randomId, removeFiles, uploadImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
 const MEDIA_BUCKET = 'event-media';
@@ -32,6 +32,8 @@ export interface EventSummary {
   everyoneCanSee: boolean;
   memberCount: number;
   myShotCount: number;
+  /** The current user's limit: shots per person plus applied shot packs. Null when unlimited. */
+  myShotLimit: number | null;
   photoCount: number;
   /** Storage paths of up to 4 recent photos the user can see. */
   previewPaths: string[];
@@ -53,6 +55,7 @@ interface EventRow {
   everyone_can_see: boolean;
   member_count: number;
   my_shot_count: number;
+  my_shot_limit: number | null;
   photo_count: number;
   preview_paths: string[] | null;
 }
@@ -74,6 +77,7 @@ function toEvent(row: EventRow): EventSummary {
     everyoneCanSee: row.everyone_can_see,
     memberCount: row.member_count,
     myShotCount: row.my_shot_count,
+    myShotLimit: row.my_shot_limit,
     photoCount: row.photo_count,
     previewPaths: row.preview_paths ?? [],
   };
@@ -88,8 +92,8 @@ export function eventPhase(event: EventSummary, now: Date = new Date()): EventPh
 
 /** Shots the current user has left, or null when unlimited. */
 export function shotsLeft(event: EventSummary): number | null {
-  if (event.shotsPerPerson === null) return null;
-  return Math.max(0, event.shotsPerPerson - event.myShotCount);
+  if (event.myShotLimit === null) return null;
+  return Math.max(0, event.myShotLimit - event.myShotCount);
 }
 
 export async function fetchMyEvents(): Promise<EventSummary[]> {
@@ -177,6 +181,28 @@ const CREATE_ERRORS: Record<string, string> = {
 function createEventErrorMessage(message: string): string {
   const code = Object.keys(CREATE_ERRORS).find((key) => message.includes(key));
   return code ? CREATE_ERRORS[code] : message;
+}
+
+/* ------------------------------------------------------------------ */
+/* Delete                                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Permanently deletes a roll the caller hosts: first its files (Storage can't
+ * be cleaned up from SQL), then the event, which cascades to members and photos.
+ */
+export async function deleteEvent(id: string): Promise<void> {
+  const { data: paths, error } = await supabase.rpc('event_storage_paths', { eid: id });
+  if (error) throw error;
+  await removeFiles((paths as string[]).map((path) => ({ bucket: MEDIA_BUCKET, path })));
+
+  const { error: deleteError, count } = await supabase
+    .from('events')
+    .delete({ count: 'exact' })
+    .eq('id', id);
+  if (deleteError) throw deleteError;
+  // RLS hides rolls the caller doesn't own, which shows up as zero rows deleted.
+  if (count === 0) throw new Error('Only the host can delete this roll.');
 }
 
 /* ------------------------------------------------------------------ */
