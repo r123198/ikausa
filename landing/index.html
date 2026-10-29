@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ikausa — a shared film camera for your event</title>
+  <meta name="description" content="Guests scan your invite, shoot on the film look you pick, and every photo develops together when the night is over.">
+  <meta name="theme-color" content="#0f0f10">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Ikausa — everyone shoots, nobody peeks">
+  <meta property="og:description" content="A shared film camera for weddings, debuts, birthdays and barkada trips. Photos develop together after the night.">
+  <meta property="og:image" content="images/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@700&display=swap">
+  <link rel="preload" as="image" href="images/disposable-1.webp" fetchpriority="high">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Ikausa home">
+      <img src="images/logo.webp" width="128" height="128" alt="">
+      <span>Ikausa</span>
+    </a>
+    <a class="button button--small button--ghost" href="https://ikausa-app.vercel.app/sign-in">Open the app</a>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="hero__copy">
+        <p class="eyebrow">Roll 01 · 27 shots left</p>
+        <h1 id="hero-heading"><span>Everyone shoots.</span><br><em><span>Nobody peeks.</span></em></h1>
+        <p class="lede">
+          Ikausa is a shared film camera for your event. Guests scan your invite, shoot on the
+          film look you pick, and every photo develops together when the night is over.
+        </p>
+        <div class="actions">
+          <a class="button" href="https://ikausa-app.vercel.app/sign-in">Start a roll</a>
+          <a class="button button--ghost" href="#how">See how it works</a>
+        </div>
+      </div>
+
+      <div class="prints" aria-hidden="true">
+        <figure class="print print--back">
+          <img src="images/disposable-2.webp" width="540" height="360" alt="" loading="eager">
+          <span class="stamp">'26 10 31</span>
+        </figure>
+        <figure class="print print--right">
+          <img src="images/polaroid-3.webp" width="540" height="360" alt="" loading="eager">
+          <span class="stamp">'26 10 31</span>
+        </figure>
+        <figure class="print print--front">
+          <img src="images/disposable-1.webp" width="540" height="810" alt="" loading="eager" fetchpriority="high">
+          <span class="stamp">'26 10 31</span>
+        </figure>
+      </div>
+    </section>
+
+    <section class="paper how" id="how" aria-labelledby="how-heading">
+      <div class="section-head">
+        <p class="eyebrow eyebrow--ink">How it works</p>
+        <h2 id="how-heading">Three steps. Then the best part: <em>waiting.</em></h2>
+      </div>
+
+      <ol class="strip">
+        <li class="frame">
+          <span class="frame__no">01</span>
+          <h3>Load the roll</h3>
+          <p>Name your event, set when it closes and pick a film look. Then design the invite card your guests will see first.</p>
+        </li>
+        <li class="frame">
+          <span class="frame__no">02</span>
+          <h3>Pass the camera</h3>
+          <p>Share a QR code or a link. Guests join from their own phone and shoot until the roll closes.</p>
+        </li>
+        <li class="frame">
+          <span class="frame__no">03</span>
+          <h3>Let it develop</h3>
+          <p>Photos stay hidden until the reveal. Then everyone gets the whole roll, from every angle of the night.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="films" aria-labelledby="films-heading">
+      <div class="films__copy">
+        <p class="eyebrow">The film</p>
+        <h2 id="films-heading">Pick one look. <em>Everyone shoots on it.</em></h2>
+        <p class="lede">
+          Every photo on the roll gets the same film, so the album feels like one night instead of
+          forty different phones. The original is always saved too.
+        </p>
+
+        <div class="film-picker" role="group" aria-label="Film looks">
+          <button type="button" class="film-chip" data-film="original" aria-pressed="false">Original</button>
+          <button type="button" class="film-chip" data-film="disposable" aria-pressed="true">Disposable</button>
+          <button type="button" class="film-chip" data-film="polaroid" aria-pressed="false">Polaroid</button>
+          <button type="button" class="film-chip" data-film="pinhole" aria-pressed="false">Pinhole</button>
+        </div>
+        <p class="film-desc" id="film-desc" aria-live="polite">
+          Warm, punchy colour with green-tinted shadows and grain, like a drugstore film camera.
+        </p>
+      </div>
+
+      <div class="viewfinder">
+        <div class="viewfinder__frame">
+          <img class="film-photo" data-film-photo="original" src="images/original-1.webp" width="540" height="810" loading="lazy" alt="Sunset above the clouds from a plane window, in the Original look">
+          <img class="film-photo is-active" data-film-photo="disposable" src="images/disposable-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Disposable look">
+          <img class="film-photo" data-film-photo="polaroid" src="images/polaroid-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Polaroid look">
+          <img class="film-photo" data-film-photo="pinhole" src="images/pinhole-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Pinhole look">
+          <span class="stamp stamp--large">'26 10 31</span>
+        </div>
+        <p class="viewfinder__counter"><span>Shots left</span> <strong>27</strong></p>
+      </div>
+    </section>
+
+    <section class="paper reveal" aria-labelledby="reveal-heading">
+      <div class="section-head">
+        <p class="eyebrow eyebrow--ink">The reveal</p>
+        <h2 id="reveal-heading">You decide when the film <em>develops.</em></h2>
+      </div>
+
+      <ol class="timeline">
+        <li>
+          <span class="timeline__when">Right away</span>
+          <p>Everyone sees photos as soon as they’re taken.</p>
+        </li>
+        <li>
+          <span class="timeline__when">When the roll closes</span>
+          <p>Photos stay hidden and develop the moment the roll closes.</p>
+        </li>
+        <li>
+          <span class="timeline__when">24 hours later</span>
+          <p>Photos develop the day after the roll closes, like real film.</p>
+        </li>
+      </ol>
+      <p class="reveal__note">Keeping it close? Set the album so only you, the host, see everyone’s photos.</p>
+    </section>
+
+    <section class="occasions" aria-labelledby="occasions-heading">
+      <h2 id="occasions-heading" class="visually-hidden">Made for</h2>
+      <p class="occasions__list">
+        Weddings. <em>Debuts.</em> Birthdays. <em>Barkada trips.</em> Company nights out.
+      </p>
+      <p class="occasions__tag">Any night worth remembering from more than one angle.</p>
+    </section>
+
+    <section class="closing" aria-labelledby="closing-heading">
+      <img class="closing__logo" src="images/logo.webp" width="128" height="128" alt="" loading="lazy">
+      <h2 id="closing-heading">Your next handaan deserves a roll.</h2>
+      <a class="button" href="https://ikausa-app.vercel.app/sign-in">Start a roll on the web</a>
+      <p class="closing__note">The iPhone app is coming soon.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Ikausa</p>
+  </footer>
+</body>
+</html>

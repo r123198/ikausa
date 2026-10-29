@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npx expo export -p web",
+  "outputDirectory": "dist",
+  "framework": null,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/join/:code", "destination": "/join/[code]" },
+    { "source": "/roll/:id", "destination": "/roll/[id]" },
+    { "source": "/camera/:id", "destination": "/camera/[id]" },
+    { "source": "/developing/:id", "destination": "/developing/[id]" }
+  ],
+  "headers": [
+    {
+      "source": "/.well-known/(.*)",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    }
+  ]
+}
