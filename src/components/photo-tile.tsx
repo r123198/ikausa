@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { C, T } from '@/constants/theme';
 
@@ -8,23 +8,27 @@ interface PhotoTileProps {
   authorName: string;
   width: number;
   height: number;
+  onPress: () => void;
 }
 
 /** Rounded photo with the photographer's name tucked into the top-left corner. */
-export function PhotoTile({ url, authorName, width, height }: PhotoTileProps) {
+export function PhotoTile({ url, authorName, width, height, onPress }: PhotoTileProps) {
   return (
-    <View style={[styles.tile, { width, height }]}>
+    <Pressable
+      accessibilityRole="imagebutton"
+      accessibilityLabel={`Photo by ${authorName}`}
+      style={({ pressed }) => [styles.tile, { width, height }, pressed && styles.pressed]}
+      onPress={onPress}>
       <Image
         source={{ uri: url }}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         transition={200}
-        accessibilityLabel={`Photo by ${authorName}`}
       />
       <Text style={styles.author} numberOfLines={1}>
         {authorName}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -36,6 +40,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.hairline,
   },
+  pressed: { opacity: 0.8 },
   author: {
     ...T.caption,
     fontSize: 13,

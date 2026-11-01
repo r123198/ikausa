@@ -2,18 +2,22 @@ import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FannedPhotos } from '@/components/fanned-photos';
 import { FilmCounter } from '@/components/film-counter';
 import { Icon } from '@/components/icon';
 import { InviteSheet } from '@/components/invite-sheet';
+import { PhotoViewer } from '@/components/photo-viewer';
 import { ShotPackSheet } from '@/components/shot-pack-sheet';
 import { Button } from '@/components/ui/button';
+import { ZoomPills } from '@/components/zoom-pills';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
 import { useUserId } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
+import { useCameraZoom } from '@/hooks/use-camera-zoom';
 import { useNow } from '@/hooks/use-now';
 import { eventPhase, fetchEvent, fetchPhotos, shotsLeft, uploadPhoto } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
@@ -21,6 +25,12 @@ import { timeUntil } from '@/lib/format';
 
 const PHOTO_QUALITY = 0.8;
 const PHASE_TICK_MS = 10_000;
+
+interface LocalShot {
+  uri: string;
+  /** Set once uploaded, so the local copy can give way to the server's. */
+  path: string | null;
+}
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -36,13 +46,15 @@ export default function CameraScreen() {
   const [isShotPackOpen, setIsShotPackOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   /** Shots taken this session, shown instantly before the server list catches up. */
-  const [justTaken, setJustTaken] = useState<string[]>([]);
+  const [justTaken, setJustTaken] = useState<LocalShot[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const cameraZoom = useCameraZoom(facing);
   const now = useNow(PHASE_TICK_MS);
 
   const { data, error, isLoading, reload } = useFocusedAsync(async () => {
     const event = await fetchEvent(id);
     const photos = event ? await fetchPhotos(id) : [];
-    return { event, myPhotoUrls: photos.filter((p) => p.userId === userId).map((p) => p.url) };
+    return { event, myPhotos: photos.filter((p) => p.userId === userId) };
   }, [id, userId]);
 
   if (!data && isLoading) return <LoadingState />;
@@ -56,7 +68,11 @@ export default function CameraScreen() {
   const isLive = eventPhase(event, now) === 'live';
   const canShoot = isLive && left !== 0 && isReady && !isSaving;
   const canGetMoreShots = isLive && left === 0;
-  const recent = [...justTaken, ...data.myPhotoUrls];
+  const serverPaths = new Set(data.myPhotos.map((p) => p.path));
+  const recent = [
+    ...justTaken.filter((shot) => !shot.path || !serverPaths.has(shot.path)).map((shot) => shot.uri),
+    ...data.myPhotos.map((p) => p.url),
+  ];
 
   async function handleShutter() {
     if (!cameraRef.current || !canShoot) return;
@@ -64,8 +80,9 @@ export default function CameraScreen() {
     setStatus(null);
     try {
       const picture = await cameraRef.current.takePictureAsync({ quality: PHOTO_QUALITY });
-      setJustTaken((shots) => [picture.uri, ...shots]);
-      await uploadPhoto(event.id, userId, picture.uri, event.cameraId);
+      setJustTaken((shots) => [{ uri: picture.uri, path: null }, ...shots]);
+      const path = await uploadPhoto(event.id, userId, picture.uri, event.cameraId);
+      setJustTaken((shots) => shots.map((shot) => (shot.uri === picture.uri ? { ...shot, path } : shot)));
     } catch (e) {
       const message = errorMessage(e);
       setJustTaken((shots) => shots.slice(1));
@@ -93,13 +110,16 @@ export default function CameraScreen() {
       );
     }
     return (
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={isFlashOn ? 'on' : 'off'}
-        onCameraReady={() => setIsReady(true)}
-      />
+      <GestureDetector gesture={cameraZoom.pinch}>
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          flash={isFlashOn ? 'on' : 'off'}
+          onCameraReady={() => setIsReady(true)}
+          {...cameraZoom.cameraProps}
+        />
+      </GestureDetector>
     );
   }
 
@@ -110,7 +130,7 @@ export default function CameraScreen() {
       : null;
 
   return (
-    <View style={styles.root}>
+    <GestureHandlerRootView style={styles.root}>
       <SafeAreaView style={styles.flex}>
         <View style={styles.topBar}>
           <Pressable
@@ -169,12 +189,21 @@ export default function CameraScreen() {
                 color={C.white}
               />
             </Pressable>
+            <ZoomPills
+              hasUltraWide={cameraZoom.hasUltraWide}
+              isUltraWide={cameraZoom.isUltraWide}
+              isZoomed={cameraZoom.isZoomed}
+              onSelectLens={cameraZoom.selectLens}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Switch camera"
               hitSlop={10}
               style={styles.overlayBtn}
-              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}>
+              onPress={() => {
+                cameraZoom.selectLens(false);
+                setFacing((f) => (f === 'back' ? 'front' : 'back'));
+              }}>
               <Icon ios="arrow.triangle.2.circlepath" material="cameraswitch" size={20} color={C.white} />
             </Pressable>
           </View>
@@ -206,8 +235,10 @@ export default function CameraScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Your shots on this roll"
+              accessibilityState={{ disabled: recent.length === 0 }}
+              disabled={recent.length === 0}
               hitSlop={8}
-              onPress={() => router.push(`/roll/${event.id}`)}>
+              onPress={() => setViewerIndex(0)}>
               <FannedPhotos urls={recent} />
             </Pressable>
           </View>
@@ -231,7 +262,10 @@ export default function CameraScreen() {
           }}
         />
       )}
-    </View>
+      {viewerIndex !== null && (
+        <PhotoViewer urls={recent} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
+      )}
+    </GestureHandlerRootView>
   );
 }
 
@@ -261,6 +295,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
   },

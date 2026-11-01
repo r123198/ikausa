@@ -24,14 +24,24 @@ export interface PaidRollSummary {
 }
 
 interface ConfirmPaidDialogProps {
+  visible: boolean;
   summary: PaidRollSummary;
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** iOS: runs once the dialog has fully closed, so the store can present its own sheet. */
+  onDismissed?: () => void;
 }
 
 /** Last check before a paid roll is created, since its settings can't be changed afterwards. */
-export function ConfirmPaidDialog({ summary, confirmLabel, onConfirm, onCancel }: ConfirmPaidDialogProps) {
+export function ConfirmPaidDialog({
+  visible,
+  summary,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  onDismissed,
+}: ConfirmPaidDialogProps) {
   const rows: [string, string][] = [
     ['Name', summary.name],
     ['Closes', formatDateTime(summary.endsAt)],
@@ -44,7 +54,7 @@ export function ConfirmPaidDialog({ summary, confirmLabel, onConfirm, onCancel }
   ];
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} onDismiss={onDismissed}>
       <View style={styles.backdrop}>
         <View style={styles.card} accessibilityViewIsModal>
           <ScrollView contentContainerStyle={styles.body} bounces={false} showsVerticalScrollIndicator={false}>

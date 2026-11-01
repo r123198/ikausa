@@ -59,7 +59,8 @@
           "microphonePermission": false
         }
       ],
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "./plugins/with-pod-deployment-target"
     ],
     "experiments": {
       "typedRoutes": true,

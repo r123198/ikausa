@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmPaidDialog } from '@/components/create/confirm-paid-dialog';
 import { CreatedDialog } from '@/components/create/created-dialog';
@@ -68,6 +68,8 @@ export default function GuestsStep() {
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConfirmingPaid, setIsConfirmingPaid] = useState(false);
+  /** Set when the paid dialog was confirmed, so creating starts once it has closed. */
+  const [isCreateQueued, setIsCreateQueued] = useState(false);
   const [created, setCreated] = useState<{ event: CreatedEvent; name: string } | null>(null);
 
   const passes = plans.data?.passes ?? [FALLBACK_FREE_PASS];
@@ -126,7 +128,17 @@ export default function GuestsStep() {
     // The closing time may have passed while the dialog was open.
     const problem = validationError();
     setError(problem);
-    if (!problem) void handleCreate();
+    if (problem) return;
+    // iOS can't show the store's payment sheet over a dialog that is still
+    // closing, so wait for onDismiss there. Android has no onDismiss.
+    if (Platform.OS === 'ios') setIsCreateQueued(true);
+    else void handleCreate();
+  }
+
+  function handleDialogDismissed() {
+    if (!isCreateQueued) return;
+    setIsCreateQueued(false);
+    void handleCreate();
   }
 
   async function handleCreate() {
@@ -258,8 +270,9 @@ export default function GuestsStep() {
         </Text>
       </View>
 
-      {isConfirmingPaid && (
+      {isPaid && (
         <ConfirmPaidDialog
+          visible={isConfirmingPaid}
           summary={{
             name: draft.name.trim(),
             endsAt: draft.endsAt,
@@ -274,6 +287,7 @@ export default function GuestsStep() {
           confirmLabel={needsPurchase ? `Confirm & buy ${pass.name}` : 'Confirm & create roll'}
           onConfirm={confirmPaid}
           onCancel={() => setIsConfirmingPaid(false)}
+          onDismissed={handleDialogDismissed}
         />
       )}
       {created && (

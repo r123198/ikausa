@@ -11,20 +11,28 @@ const HEIGHT_RATIO = 4 / 3;
 interface PhotoGridProps {
   photos: Photo[];
   width: number;
+  /** The signed-in user's id, so their own shots read "You". */
+  currentUserId: string | undefined;
+  onPressPhoto: (index: number) => void;
 }
 
-export function PhotoGrid({ photos, width }: PhotoGridProps) {
+export function authorLabel(photo: Photo, currentUserId: string | undefined): string {
+  return photo.userId === currentUserId ? 'You' : photo.authorName;
+}
+
+export function PhotoGrid({ photos, width, currentUserId, onPressPhoto }: PhotoGridProps) {
   const tileWidth = (width - GAP * (COLUMNS - 1)) / COLUMNS;
 
   return (
     <View style={styles.grid}>
-      {photos.map((photo) => (
+      {photos.map((photo, index) => (
         <PhotoTile
           key={photo.id}
           url={photo.url}
-          authorName={photo.authorName}
+          authorName={authorLabel(photo, currentUserId)}
           width={tileWidth}
           height={tileWidth * HEIGHT_RATIO}
+          onPress={() => onPressPhoto(index)}
         />
       ))}
     </View>

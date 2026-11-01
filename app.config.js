@@ -2,20 +2,35 @@
 // domain on top of app.json. Nothing is added until the domain is set.
 const { inviteHost } = require('./invite-domain');
 
-module.exports = ({ config }) => {
-  const host = inviteHost();
-  if (!host) return config;
+const APPLE_TARGETS_PLUGIN = '@bacons/apple-targets';
 
+// The App Clip target can't be signed by a free (personal) Apple team, so it is
+// only built once ios.appleTeamId is set for the paid developer account.
+function withoutClipUnlessTeam(config) {
+  if (config.ios?.appleTeamId) return config;
   return {
     ...config,
+    plugins: (config.plugins ?? []).filter(
+      (plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) !== APPLE_TARGETS_PLUGIN
+    ),
+  };
+}
+
+module.exports = ({ config }) => {
+  const host = inviteHost();
+  const base = withoutClipUnlessTeam(config);
+  if (!host) return base;
+
+  return {
+    ...base,
     ios: {
-      ...config.ios,
-      associatedDomains: [...(config.ios?.associatedDomains ?? []), `applinks:${host}`],
+      ...base.ios,
+      associatedDomains: [...(base.ios?.associatedDomains ?? []), `applinks:${host}`],
     },
     android: {
-      ...config.android,
+      ...base.android,
       intentFilters: [
-        ...(config.android?.intentFilters ?? []),
+        ...(base.android?.intentFilters ?? []),
         {
           action: 'VIEW',
           autoVerify: true,

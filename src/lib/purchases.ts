@@ -1,5 +1,6 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
+import type { PurchasesStoreProduct } from 'react-native-purchases';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
 const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY;
@@ -21,6 +22,8 @@ const apiKey = isExpoGo
 export const canPurchase = Boolean(apiKey);
 
 let configuredFor: string | null = null;
+/** Products already loaded for prices, so tapping Buy opens the payment sheet without another fetch. */
+const productCache = new Map<string, PurchasesStoreProduct>();
 
 async function sdk() {
   const module = await import('react-native-purchases');
@@ -54,6 +57,7 @@ export async function fetchStorePrices(productIds: string[]): Promise<Map<string
       productIds,
       Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION
     );
+    products.forEach((p) => productCache.set(p.identifier, p));
     return new Map(products.map((p) => [p.identifier, p.priceString]));
   } catch (error) {
     console.error('Could not load store prices', error);
@@ -66,7 +70,9 @@ export type PurchaseOutcome = 'purchased' | 'cancelled';
 export async function buyProduct(productId: string): Promise<PurchaseOutcome> {
   if (!apiKey) throw new Error('Purchases are only available in the mobile app.');
   const Purchases = await sdk();
-  const [product] = await Purchases.getProducts([productId], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
+  const [product] = productCache.has(productId)
+    ? [productCache.get(productId)]
+    : await Purchases.getProducts([productId], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
   if (!product) throw new Error('This isn’t available in the store right now.');
   try {
     await Purchases.purchaseStoreProduct(product);

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { CreateEventProvider } from '@/context/create-event-context';
+import { isAppClip } from '@/lib/app-clip';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,11 +27,14 @@ function RootStack() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={Boolean(session)}>
-        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="roll/[id]" />
         <Stack.Screen name="camera/[id]" />
         <Stack.Screen name="developing/[id]" />
         <Stack.Screen name="join/limit-reached" />
+      </Stack.Protected>
+      {/* The App Clip is for invited guests: no home tabs, profile or roll creation. */}
+      <Stack.Protected guard={Boolean(session) && !isAppClip}>
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="create/name" />
         <Stack.Screen name="create/finish" />
         <Stack.Screen name="create/reveal" />

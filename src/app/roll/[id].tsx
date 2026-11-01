@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CoverImage } from '@/components/cover-image';
 import { Icon } from '@/components/icon';
 import { InviteSheet } from '@/components/invite-sheet';
-import { PhotoGrid } from '@/components/photo-grid';
+import { authorLabel, PhotoGrid } from '@/components/photo-grid';
+import { PhotoViewer } from '@/components/photo-viewer';
 import { RollDetailsSheet } from '@/components/roll-details-sheet';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
@@ -22,6 +23,7 @@ import { C, T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
+import { isAppClip } from '@/lib/app-clip';
 import {
   eventPhase,
   fetchEvent,
@@ -95,6 +97,7 @@ export default function RollScreen() {
   const [openSheet, setOpenSheet] = useState<'invite' | 'details' | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const { data, error, isLoading, reload } = useFocusedAsync(
     async () => {
@@ -134,12 +137,17 @@ export default function RollScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.topBar}>
-        <HeaderButton
-          ios="chevron.left"
-          material="arrow_back"
-          label="Back"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-        />
+        {/* In the App Clip this roll is the start screen, so there's nowhere to go back to. */}
+        {isAppClip && !router.canGoBack() ? (
+          <View style={styles.headerSpacer} />
+        ) : (
+          <HeaderButton
+            ios="chevron.left"
+            material="arrow_back"
+            label="Back"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          />
+        )}
         <HeaderButton
           ios="gearshape.fill"
           material="settings"
@@ -207,7 +215,12 @@ export default function RollScreen() {
         {photos.length === 0 ? (
           <Text style={styles.empty}>{emptyMessage(phase)}</Text>
         ) : (
-          <PhotoGrid photos={photos} width={contentWidth} />
+          <PhotoGrid
+            photos={photos}
+            width={contentWidth}
+            currentUserId={session?.user.id}
+            onPressPhoto={setViewerIndex}
+          />
         )}
       </ScrollView>
 
@@ -232,6 +245,14 @@ export default function RollScreen() {
           router.replace('/');
         }}
       />
+      {viewerIndex !== null && (
+        <PhotoViewer
+          urls={photos.map((photo) => photo.url)}
+          captions={photos.map((photo) => authorLabel(photo, session?.user.id))}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -247,6 +268,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PADDING,
     paddingTop: 4,
   },
+  headerSpacer: { width: 46, height: 46 },
   headerBtn: {
     width: 46,
     height: 46,

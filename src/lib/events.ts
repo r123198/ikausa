@@ -313,14 +313,14 @@ async function developOrNull(uri: string, filmId: string): Promise<string | null
 /**
  * Develop the shot with the roll's film look, reserve it (enforces the shot
  * limit), upload the original and developed files, then mark it ready.
- * A failed upload releases the reservation.
+ * A failed upload releases the reservation. Resolves with the stored path.
  */
 export async function uploadPhoto(
   eventId: string,
   userId: string,
   uri: string,
   filmId: string
-): Promise<void> {
+): Promise<string> {
   const base = `${eventId}/photos/${userId}/${randomId()}`;
   const developedUri = await developOrNull(uri, filmId);
   const path = `${base}.jpg`;
@@ -346,6 +346,7 @@ export async function uploadPhoto(
   // If this fails the row stays pending; the scheduled cleanup removes the row and file.
   const { error: readyError } = await supabase.rpc('mark_photo_ready', { photo_id: reserved.id });
   if (readyError) throw readyError;
+  return path;
 }
 
 /** Signed URLs that make the browser download instead of display. */
