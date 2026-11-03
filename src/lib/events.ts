@@ -37,7 +37,14 @@ export interface EventSummary {
   photoCount: number;
   /** Storage paths of up to 4 recent photos the user can see. */
   previewPaths: string[];
+  /** Who the roll is for, set by organizers in Studio. */
+  clientName: string | null;
+  passId: string;
+  myRole: EventRole;
 }
+
+/** Owners and co-hosts see every photo; co-hosts can't edit or delete the roll. */
+export type EventRole = 'owner' | 'cohost' | 'guest';
 
 interface EventRow {
   id: string;
@@ -58,6 +65,9 @@ interface EventRow {
   my_shot_limit: number | null;
   photo_count: number;
   preview_paths: string[] | null;
+  client_name: string | null;
+  pass_id: string;
+  my_role: EventRole;
 }
 
 function toEvent(row: EventRow): EventSummary {
@@ -80,6 +90,9 @@ function toEvent(row: EventRow): EventSummary {
     myShotLimit: row.my_shot_limit,
     photoCount: row.photo_count,
     previewPaths: row.preview_paths ?? [],
+    clientName: row.client_name,
+    passId: row.pass_id,
+    myRole: row.my_role,
   };
 }
 

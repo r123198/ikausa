@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
-import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
+import { useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import { isAppClip } from '@/lib/app-clip';
 import {
@@ -33,7 +33,7 @@ import {
   type EventSummary,
   type Photo,
 } from '@/lib/events';
-import { exportPhotos } from '@/lib/export-photos';
+import { exportErrorMessage, exportPhotos } from '@/lib/export-photos';
 import { formatDate, pluralize, timeUntil } from '@/lib/format';
 
 const PAGE_PADDING = 20;
@@ -96,7 +96,7 @@ export default function RollScreen() {
   const now = useNow();
   const [openSheet, setOpenSheet] = useState<'invite' | 'details' | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<{ text: string; isError: boolean } | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const { data, error, isLoading, reload } = useFocusedAsync(
@@ -123,12 +123,12 @@ export default function RollScreen() {
 
   async function handleExport() {
     setIsExporting(true);
-    setExportMessage(null);
+    setExportStatus(null);
     try {
       const saved = await exportPhotos(photos);
-      setExportMessage(`Saved ${pluralize(saved, 'photo')}.`);
+      setExportStatus({ text: `Saved ${pluralize(saved, 'photo')}.`, isError: false });
     } catch (e) {
-      setExportMessage(errorMessage(e));
+      setExportStatus({ text: exportErrorMessage(e), isError: true });
     } finally {
       setIsExporting(false);
     }
@@ -208,7 +208,13 @@ export default function RollScreen() {
             onPress={() => router.push(`/camera/${event.id}`)}
           />
         </View>
-        {exportMessage && <Text style={styles.status}>{exportMessage}</Text>}
+        {exportStatus && (
+          <Text
+            style={[styles.status, exportStatus.isError && styles.statusError]}
+            accessibilityLiveRegion="polite">
+            {exportStatus.text}
+          </Text>
+        )}
 
         <View style={styles.rule} />
 
@@ -290,6 +296,7 @@ const styles = StyleSheet.create({
 
   actions: { flexDirection: 'row', gap: 8 },
   status: { ...T.caption, fontSize: 14, textAlign: 'center' },
+  statusError: { color: C.error },
   rule: { height: 1, backgroundColor: C.hairline },
   empty: { ...T.caption, fontSize: 15, lineHeight: 22, textAlign: 'center', paddingVertical: 32 },
 

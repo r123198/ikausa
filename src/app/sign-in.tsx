@@ -12,15 +12,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GoogleButton } from '@/components/google-button';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { C, T } from '@/constants/theme';
 import { errorMessage } from '@/hooks/use-async';
+import { signInWithProvider } from '@/lib/oauth';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 type Mode = 'sign-in' | 'sign-up';
 
 const MIN_PASSWORD_LENGTH = 8;
+const FORM_MAX_WIDTH = 520;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Only allow in-app paths so a crafted link can't redirect elsewhere. */
@@ -40,14 +43,18 @@ function validate(mode: Mode, name: string, email: string, password: string): st
 
 export default function SignInScreen() {
   const router = useRouter();
-  const { next } = useLocalSearchParams<{ next?: string | string[] }>();
-  const [mode, setMode] = useState<Mode>('sign-in');
+  const { next, mode: initialMode } = useLocalSearchParams<{
+    next?: string | string[];
+    mode?: string | string[];
+  }>();
+  const [mode, setMode] = useState<Mode>(initialMode === 'sign-up' ? 'sign-up' : 'sign-in');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleBusy, setIsGoogleBusy] = useState(false);
 
   const isSignUp = mode === 'sign-up';
 
@@ -93,6 +100,21 @@ export default function SignInScreen() {
       setError(errorMessage(e));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleGoogle() {
+    setError(null);
+    setNotice(null);
+    setIsGoogleBusy(true);
+    try {
+      const outcome = await signInWithProvider('google');
+      // On web the page is navigating away; /auth/callback finishes the sign-in.
+      if (outcome === 'signed-in') router.replace(safeNext(next));
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setIsGoogleBusy(false);
     }
   }
 
@@ -170,6 +192,20 @@ export default function SignInScreen() {
             label={isSignUp ? 'Create account' : 'Sign in'}
             onPress={handleSubmit}
             isLoading={isSubmitting}
+            disabled={isGoogleBusy}
+          />
+
+          <View style={styles.divider} aria-hidden>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <GoogleButton
+            label={isSignUp ? 'Sign up with Google' : 'Continue with Google'}
+            onPress={handleGoogle}
+            isLoading={isGoogleBusy}
+            disabled={isSubmitting || !isSupabaseConfigured}
           />
 
           <Pressable accessibilityRole="button" onPress={switchMode} style={styles.switch}>
@@ -203,7 +239,15 @@ function Field({ label, ...inputProps }: FieldProps) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
   flex: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 20 },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    gap: 20,
+    width: '100%',
+    maxWidth: FORM_MAX_WIDTH,
+    alignSelf: 'center',
+  },
 
   header: { gap: 12, marginBottom: 8 },
   title: { ...T.headlineLgMobile },
@@ -221,6 +265,10 @@ const styles = StyleSheet.create({
     borderColor: C.outlineVariant,
     backgroundColor: C.surface,
   },
+
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: -4 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: C.hairline },
+  dividerText: { ...T.caption, fontSize: 13, color: C.textMuted },
 
   error: { ...T.bodyMd, fontSize: 14, color: C.error },
   notice: { ...T.bodyMd, fontSize: 14, color: C.primary },

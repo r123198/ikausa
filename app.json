@@ -9,7 +9,9 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "com.maalam.ikausa"
+      "bundleIdentifier": "com.maalam.ikausa",
+      "supportsTablet": true,
+      "requireFullScreen": true
     },
     "android": {
       "package": "com.maalam.ikausa",

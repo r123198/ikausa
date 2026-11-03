@@ -13,6 +13,24 @@ Run each file in `migrations/` once, in filename order, in **SQL Editor → New 
 5. `20261013000004_photo_originals.sql`: keeps the untouched original next to each film-developed photo
 6. `20261013000005_profile_and_account.sql`: profile photos and self-service account deletion
 7. `20261014000000_shot_tiers_and_top_ups.sql`: plans priced by guests × shots, and shot packs bought during a roll
+8. `20261017000000_delete_event.sql`: hosts can delete a roll
+9. `20261104000000_oauth_profile_names.sql`: profile names for Google sign-ups
+
+## 1b. Google sign-in
+
+The app signs in with Google through Supabase Auth (no Google SDK in the app).
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) create an OAuth client of type
+   **Web application**. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
+   Fill in the OAuth consent screen (app name, support email, logo) or Google shows an "unverified app" warning.
+2. In Supabase **Authentication → Providers → Google**, turn it on and paste the client ID and secret.
+3. In **Authentication → URL Configuration → Redirect URLs** add every place the app can be sent back to:
+   - `ikausa://auth/callback` (the phone app)
+   - `https://<web-domain>/auth/callback` (the web app)
+   - `http://localhost:8081/auth/callback` (local web dev)
+4. Migration `20261104000000_oauth_profile_names.sql` names Google accounts from their Google profile instead of "Member".
+
+Apple requires **Sign in with Apple** on iOS whenever another third-party login is offered; add it before submitting.
 
 ## 2. Edge Functions
 

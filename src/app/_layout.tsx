@@ -43,8 +43,13 @@ function RootStack() {
         <Stack.Screen name="create/guests" />
       </Stack.Protected>
       {/* Reachable signed out: invite links preview the event before sign-in. */}
+      <Stack.Screen name="onboarding" />
       <Stack.Screen name="sign-in" />
+      <Stack.Screen name="auth/callback" />
       <Stack.Screen name="join/[code]" />
+      <Stack.Screen name="host/[token]" />
+      {/* Web-only organizer portal; it checks sign-in and access itself. */}
+      <Stack.Screen name="studio" />
     </Stack>
   );
 }

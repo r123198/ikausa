@@ -1,3 +1,4 @@
+import { readFileBytes } from '@/lib/read-file';
 import { supabase } from '@/lib/supabase';
 
 /** Mirrors the largest bucket file_size_limit (event-media, 10 MB). */
@@ -17,10 +18,7 @@ export async function uploadImage(bucket: string, path: string, uri: string): Pr
 }
 
 async function readBytes(uri: string): Promise<ArrayBuffer> {
-  if (uri.startsWith('file:')) {
-    const { File } = await import('expo-file-system');
-    return new File(uri).arrayBuffer();
-  }
+  if (uri.startsWith('file:')) return readFileBytes(uri);
   // data:, blob: and http(s): URIs (web capture, picked images, pasted links).
   const response = await fetch(uri);
   if (!response.ok) throw new Error(`Could not read image (${response.status})`);
