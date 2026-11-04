@@ -19,7 +19,8 @@ interface StudioShellProps {
 
 function NavLink({ href, label }: { href: Href; label: string }) {
   const pathname = usePathname();
-  const isActive = href === '/studio' ? pathname === '/studio' : pathname.startsWith(String(href));
+  // Only Admin has sub-pages; '/' and '/studio' would otherwise match every path below them.
+  const isActive = href === '/studio/admin' ? pathname.startsWith(href) : pathname === href;
   return (
     <Link href={href} asChild>
       <Pressable

@@ -5,7 +5,8 @@ interface AsyncState<T> {
   data: T | undefined;
   error: string | null;
   isLoading: boolean;
-  reload: () => void;
+  /** Resolves once the load settles; failures land in `error`, so it never rejects. */
+  reload: () => Promise<void>;
 }
 
 /**
@@ -24,7 +25,7 @@ export function useFocusedAsync<T>(load: () => Promise<T>, deps: unknown[]): Asy
   const reload = useCallback(() => {
     const id = ++requestId.current;
     setIsLoading(true);
-    run()
+    return run()
       .then((result) => {
         if (id !== requestId.current) return;
         setData(result);
@@ -40,7 +41,11 @@ export function useFocusedAsync<T>(load: () => Promise<T>, deps: unknown[]): Asy
       });
   }, [run]);
 
-  useFocusEffect(reload);
+  useFocusEffect(
+    useCallback(() => {
+      void reload();
+    }, [reload])
+  );
 
   return { data, error, isLoading, reload };
 }

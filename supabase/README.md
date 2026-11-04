@@ -14,7 +14,22 @@ Run each file in `migrations/` once, in filename order, in **SQL Editor → New 
 6. `20261013000005_profile_and_account.sql`: profile photos and self-service account deletion
 7. `20261014000000_shot_tiers_and_top_ups.sql`: plans priced by guests × shots, and shot packs bought during a roll
 8. `20261017000000_delete_event.sql`: hosts can delete a roll
-9. `20261104000000_oauth_profile_names.sql`: profile names for Google sign-ups
+9. `20261103000000_studio.sql`: Studio organizers, manually granted credits, co-hosts and host links
+10. `20261104000000_oauth_profile_names.sql`: profile names for Google sign-ups
+11. `20261104000001_cohost_spots.sql`: co-hosts don't count against the participant cap
+12. `20261104000002_private_functions.sql`: moves privileged functions out of the API schema, behind thin wrappers
+13. `20261104000003_performance_indexes.sql`: indexes every foreign key and gives `join_attempts` a primary key
+14. `20261104000004_restore_wrappers.sql`: repairs two wrappers if step 11 ran after step 12
+
+## 1a. First Studio admin
+
+Organizers join through an invite from an admin, so the first admin has to be added by hand. They need to have signed in once. Run this in **SQL Editor**:
+
+```sql
+insert into public.organizers (user_id, is_admin)
+select id, true from auth.users where email = 'you@example.com'
+on conflict (user_id) do update set is_admin = true;
+```
 
 ## 1b. Google sign-in
 

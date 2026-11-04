@@ -5,7 +5,7 @@ import type { OrganizerStatus } from '@/lib/studio';
 interface StudioContextValue {
   status: OrganizerStatus;
   /** Re-reads organizer status, e.g. right after an invite is redeemed. */
-  reloadStatus: () => void;
+  reloadStatus: () => Promise<void>;
 }
 
 export const StudioContext = createContext<StudioContextValue | null>(null);

@@ -26,15 +26,23 @@ const PRINT_CSS = `
 @page { size: A4; margin: 0; }
 @media print {
   html, body { background: #ffffff !important; }
+  /* The app shell is a full-height, clipped flex stack, which would cut printing off after one page. */
+  html, body, *:has(#print-root) {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
   #print-controls { display: none !important; }
-  #print-root { background: #ffffff !important; padding: 0 !important; gap: 0 !important; }
+  #print-root { display: block !important; background: #ffffff !important; padding: 0 !important; }
   [id^="print-sheet"] {
     margin: 0 !important;
     box-shadow: none !important;
-    break-after: page;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  /* Only between sheets: a break after the last one prints a blank page. */
+  #print-sheet-poster { break-after: page; }
 }
 `;
 
@@ -67,44 +75,45 @@ export default function PrintKitScreen() {
   const url = inviteUrl(event.inviteCode);
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.root} nativeID="print-root">
+    <ScrollView style={styles.page}>
       <style>{PRINT_CSS}</style>
-
-      <View style={styles.controls} nativeID="print-controls">
-        <Button label="Back" variant="outline" size="sm" onPress={() => router.back()} />
-        <Text style={styles.controlsText}>
-          Print, or choose “Save as PDF” in the print dialog. Use A4 paper with no margins.
-        </Text>
-        <Button label="Print" size="sm" onPress={() => window.print()} />
-      </View>
-
-      <View style={styles.sheet} nativeID="print-sheet-poster">
-        <CoverImage cover={event.cover} style={styles.posterCover} />
-        <View style={styles.posterBody}>
-          <Text style={styles.posterEyebrow}>Everyone shoots. Nobody peeks.</Text>
-          <Text style={styles.posterTitle} numberOfLines={2}>
-            {event.name}
+      <View style={styles.root} nativeID="print-root">
+        <View style={styles.controls} nativeID="print-controls">
+          <Button label="Back" variant="outline" size="sm" onPress={() => router.back()} />
+          <Text style={styles.controlsText}>
+            Print, or choose “Save as PDF” in the print dialog. Use A4 paper with no margins.
           </Text>
-          <View style={styles.posterQr}>
-            <QrCode value={url} size={POSTER_QR} />
-          </View>
-          <Text style={styles.posterCall}>Scan to join the roll</Text>
-          <Text style={styles.posterSteps}>
-            Open your phone camera, point it at the code and tap the link.{'\n'}Your photos develop
-            with everyone else’s after the event.
-          </Text>
-          <Text style={styles.posterCode}>Or enter code {event.inviteCode}</Text>
-          <View style={styles.posterBrand}>
-            <Logo size={24} />
-            <Text style={styles.posterBrandText}>Ikausa</Text>
+          <Button label="Print" size="sm" onPress={() => window.print()} />
+        </View>
+
+        <View style={styles.sheet} nativeID="print-sheet-poster">
+          <CoverImage cover={event.cover} style={styles.posterCover} />
+          <View style={styles.posterBody}>
+            <Text style={styles.posterEyebrow}>Everyone shoots. Nobody peeks.</Text>
+            <Text style={styles.posterTitle} numberOfLines={2}>
+              {event.name}
+            </Text>
+            <View style={styles.posterQr}>
+              <QrCode value={url} size={POSTER_QR} />
+            </View>
+            <Text style={styles.posterCall}>Scan to join the roll</Text>
+            <Text style={styles.posterSteps}>
+              Open your phone camera, point it at the code and tap the link.{'\n'}Your photos develop
+              with everyone else’s after the event.
+            </Text>
+            <Text style={styles.posterCode}>Or enter code {event.inviteCode}</Text>
+            <View style={styles.posterBrand}>
+              <Logo size={24} />
+              <Text style={styles.posterBrandText}>Ikausa</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={[styles.sheet, styles.cardSheet]} nativeID="print-sheet-cards">
-        {Array.from({ length: TABLE_CARDS }, (_, i) => (
-          <TableCard key={i} name={event.name} url={url} />
-        ))}
+        <View style={[styles.sheet, styles.cardSheet]} nativeID="print-sheet-cards">
+          {Array.from({ length: TABLE_CARDS }, (_, i) => (
+            <TableCard key={i} name={event.name} url={url} />
+          ))}
+        </View>
       </View>
     </ScrollView>
   );

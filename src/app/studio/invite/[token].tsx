@@ -28,7 +28,8 @@ export default function OrganizerInviteScreen() {
     setError(null);
     try {
       await redeemOrganizerInvite(token);
-      reloadStatus();
+      // Wait for the new status so the layout's invite-only gate doesn't flash.
+      await reloadStatus();
       router.replace('/studio');
     } catch (e) {
       setError(errorMessage(e));

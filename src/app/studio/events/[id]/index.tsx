@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -10,6 +9,7 @@ import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { TextField } from '@/components/ui/text-field';
 import { C, T } from '@/constants/theme';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
+import { useCopy } from '@/hooks/use-copy';
 import { eventPhase, fetchEvent, type EventPhase } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
 import { formatDate, formatDateTime, pluralize } from '@/lib/format';
@@ -23,7 +23,6 @@ import {
 } from '@/lib/studio';
 
 const QR_SIZE = 132;
-const COPIED_RESET_MS = 2000;
 
 const PHASE_LABELS: Record<EventPhase, string> = {
   live: 'Live',
@@ -41,13 +40,7 @@ async function loadEvent(id: string) {
 
 /** A link with a copy button that briefly confirms the copy. */
 function CopyRow({ url, label }: { url: string; label: string }) {
-  const [isCopied, setIsCopied] = useState(false);
-
-  async function copy() {
-    await Clipboard.setStringAsync(url);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), COPIED_RESET_MS);
-  }
+  const { isCopied, copy } = useCopy();
 
   return (
     <View style={styles.copyRow}>
@@ -58,7 +51,7 @@ function CopyRow({ url, label }: { url: string; label: string }) {
         label={isCopied ? 'Copied' : label}
         size="sm"
         variant="outline"
-        onPress={copy}
+        onPress={() => copy(url)}
       />
     </View>
   );

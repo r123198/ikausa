@@ -10,6 +10,7 @@ import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { TextField } from '@/components/ui/text-field';
 import { C, T } from '@/constants/theme';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
+import { useCopy } from '@/hooks/use-copy';
 import { formatDate } from '@/lib/format';
 import { fetchPasses, type Pass } from '@/lib/passes';
 import {
@@ -24,7 +25,6 @@ import {
   type OrganizerInvite,
 } from '@/lib/studio';
 
-const COPIED_RESET_MS = 2000;
 
 async function loadAdmin() {
   const [organizers, invites, passes] = await Promise.all([
@@ -42,14 +42,8 @@ function inviteStatus(invite: OrganizerInvite, now: Date): string {
 }
 
 function InviteRow({ invite }: { invite: OrganizerInvite }) {
-  const [isCopied, setIsCopied] = useState(false);
+  const { isCopied, copy } = useCopy();
   const isOpen = !invite.usedAt && invite.expiresAt > new Date();
-
-  async function copy() {
-    await Clipboard.setStringAsync(organizerInviteUrl(invite.token));
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), COPIED_RESET_MS);
-  }
 
   return (
     <View style={styles.row}>
@@ -60,7 +54,12 @@ function InviteRow({ invite }: { invite: OrganizerInvite }) {
         </Text>
       </View>
       {isOpen && (
-        <Button label={isCopied ? 'Copied' : 'Copy link'} size="sm" variant="outline" onPress={copy} />
+        <Button
+          label={isCopied ? 'Copied' : 'Copy link'}
+          size="sm"
+          variant="outline"
+          onPress={() => copy(organizerInviteUrl(invite.token))}
+        />
       )}
     </View>
   );
