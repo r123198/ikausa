@@ -20,6 +20,7 @@ Run each file in `migrations/` once, in filename order, in **SQL Editor → New 
 12. `20261104000002_private_functions.sql`: moves privileged functions out of the API schema, behind thin wrappers
 13. `20261104000003_performance_indexes.sql`: indexes every foreign key and gives `join_attempts` a primary key
 14. `20261104000004_restore_wrappers.sql`: repairs two wrappers if step 11 ran after step 12
+15. `20261104000005_my_events_lookup.sql`: makes loading a person's rolls independent of the total number of rolls
 
 ## 1a. First Studio admin
 

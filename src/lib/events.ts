@@ -116,7 +116,7 @@ export async function fetchMyEvents(): Promise<EventSummary[]> {
 }
 
 export async function fetchEvent(id: string): Promise<EventSummary | null> {
-  const { data, error } = await supabase.rpc('my_events').eq('id', id).maybeSingle();
+  const { data, error } = await supabase.rpc('my_events', { only_id: id }).maybeSingle();
   if (error) throw error;
   return data ? toEvent(data as EventRow) : null;
 }
