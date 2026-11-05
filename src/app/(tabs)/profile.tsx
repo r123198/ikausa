@@ -28,13 +28,15 @@ import { useCoverSource } from '@/constants/covers';
 import { C, FloatingTabBarSpace, T } from '@/constants/theme';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { eventPhase, fetchMyEvents, type EventSummary } from '@/lib/events';
+import { rollExport } from '@/lib/exported-rolls';
 import { formatDate, pluralize, timeUntil } from '@/lib/format';
 import { fetchMyProfile, removeAvatar, updateAvatar } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
 
 const AVATAR_PICK_QUALITY = 0.8;
 
-type OpenSheet = 'photo' | 'name' | 'email' | 'password' | 'delete' | null;
+type OpenSheet = 'photo' | 'name' | 'email' | 'password' | 'delete' | 'leave-guest' | null;
 
 async function loadProfile() {
   const [profile, events] = await Promise.all([fetchMyProfile(), fetchMyEvents()]);
@@ -108,6 +110,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 export default function ProfileScreen() {
   const { data, error, isLoading, reload } = useFocusedAsync(loadProfile, []);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
+  const { isGuest } = useAuth();
   const [isPhotoBusy, setIsPhotoBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -192,7 +195,7 @@ export default function ProfileScreen() {
               {profile.displayName}
             </Text>
             <Text style={styles.email} numberOfLines={1}>
-              {profile.email}
+              {isGuest ? 'Guest' : profile.email}
             </Text>
           </View>
         </View>
@@ -205,9 +208,21 @@ export default function ProfileScreen() {
 
         <Group title="Account">
           <SettingRow label="Name" value={profile.displayName} onPress={() => setOpenSheet('name')} />
-          <SettingRow label="Email" value={profile.email} onPress={() => setOpenSheet('email')} />
-          <SettingRow label="Password" value="••••••••" onPress={() => setOpenSheet('password')} />
+          {!isGuest && (
+            <>
+              <SettingRow label="Email" value={profile.email} onPress={() => setOpenSheet('email')} />
+              <SettingRow label="Password" value="••••••••" onPress={() => setOpenSheet('password')} />
+            </>
+          )}
         </Group>
+        {isGuest && (
+          <View style={styles.guestCard}>
+            <Icon ios="person.crop.circle.badge.questionmark" material="person" size={20} color={C.primary} />
+            <Text style={styles.guestText}>
+              You joined as a guest. Your rolls and photos are saved on this device only.
+            </Text>
+          </View>
+        )}
 
         {developing.length > 0 && (
           <Group title="Developing">
@@ -231,7 +246,9 @@ export default function ProfileScreen() {
                 href={`/roll/${event.id}`}
                 detail={
                   eventPhase(event, now) === 'ready'
-                    ? `${pluralize(event.photoCount, 'photo')} · Export until ${formatDate(event.exportUntil)}`
+                    ? rollExport(event.id)
+                      ? `${pluralize(event.photoCount, 'photo')} · Saved to this device`
+                      : `${pluralize(event.photoCount, 'photo')} · Export until ${formatDate(event.exportUntil)}`
                     : `Export closed ${formatDate(event.exportUntil)}`
                 }
               />
@@ -240,7 +257,11 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.footerActions}>
-          <Button label="Sign out" variant="outline" onPress={signOut} />
+          <Button
+            label="Sign out"
+            variant="outline"
+            onPress={() => (isGuest ? setOpenSheet('leave-guest') : signOut())}
+          />
           <Pressable
             accessibilityRole="button"
             style={({ pressed }) => [styles.deleteLink, pressed && styles.pressed]}
@@ -268,6 +289,14 @@ export default function ProfileScreen() {
         <PasswordSheet onClose={close} onDone={() => closeAndReload('Password updated.')} />
       )}
       {openSheet === 'delete' && <DeleteAccountSheet onClose={close} onDone={close} />}
+      <Sheet
+        visible={openSheet === 'leave-guest'}
+        onClose={close}
+        title="Sign out as guest?"
+        subtitle="Guests have no account to sign back in to. You won’t be able to open the rolls you joined or see their photos again on this device.">
+        <Button label="Sign out" variant="danger" onPress={signOut} />
+        <Button label="Stay" variant="outline" onPress={close} />
+      </Sheet>
     </SafeAreaView>
   );
 }
@@ -316,6 +345,18 @@ const styles = StyleSheet.create({
   rowMeta: { ...T.caption, fontSize: 14, lineHeight: 20 },
 
   footerActions: { gap: 8 },
+  guestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.hairline,
+    marginTop: -12,
+  },
+  guestText: { ...T.caption, flex: 1, fontSize: 14, lineHeight: 20, color: C.textSoft },
   deleteLink: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 16 },
   deleteText: { ...T.bodyMd, fontSize: 15, color: C.error, fontWeight: '600' },
 });

@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { resetCreateEventState } from '@/context/create-event-context';
+import { isGuestSession } from '@/lib/guest';
 import { syncPurchasesUser } from '@/lib/purchases';
 import { supabase } from '@/lib/supabase';
 
@@ -9,9 +10,11 @@ interface AuthContextValue {
   session: Session | null;
   /** False until the stored session has been restored on launch. */
   isReady: boolean;
+  /** Joined from an invite link with just a name: can shoot, can't start rolls. */
+  isGuest: boolean;
 }
 
-const AuthContext = createContext<AuthContextValue>({ session: null, isReady: false });
+const AuthContext = createContext<AuthContextValue>({ session: null, isReady: false, isGuest: false });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,7 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     syncPurchasesUser(userId);
   }, [userId]);
 
-  return <AuthContext.Provider value={{ session, isReady }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ session, isReady, isGuest: isGuestSession(session) }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

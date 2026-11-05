@@ -19,7 +19,7 @@ import { InviteSheet } from '@/components/invite-sheet';
 import { Wordmark } from '@/components/logo';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, FloatingTabBarSpace, T } from '@/constants/theme';
-import { useUserId } from '@/context/auth-context';
+import { useAuth, useUserId } from '@/context/auth-context';
 import { useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import { eventPhase, fetchMyEvents, shotsLeft, signedUrls, type EventSummary } from '@/lib/events';
@@ -191,6 +191,7 @@ function AlbumRow({ event, userId, urls, stripWidth }: AlbumRowProps) {
 
 export default function HomeScreen() {
   const userId = useUserId();
+  const { isGuest } = useAuth();
   const now = useNow();
   const { width } = useWindowDimensions();
   const { data, error, isLoading, reload } = useFocusedAsync(loadHome, []);
@@ -225,7 +226,11 @@ export default function HomeScreen() {
           style={styles.activeScroller}
           contentContainerStyle={styles.activeRow}>
           {live.length === 0 ? (
-            <StartCard width={cardWidth} />
+            isGuest ? (
+              <Text style={styles.guestNote}>Rolls you join from an invite link show up here.</Text>
+            ) : (
+              <StartCard width={cardWidth} />
+            )
           ) : (
             live.map((event) => (
               <ActiveCard
@@ -270,6 +275,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  guestNote: { ...T.caption, fontSize: 14, lineHeight: 20, paddingVertical: 12 },
   safe: { flex: 1, backgroundColor: C.background },
   content: { paddingHorizontal: PAGE_PADDING, paddingBottom: FloatingTabBarSpace },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },

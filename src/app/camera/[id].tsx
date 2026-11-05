@@ -18,6 +18,7 @@ import { C, T } from '@/constants/theme';
 import { useUserId } from '@/context/auth-context';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { useCameraZoom } from '@/hooks/use-camera-zoom';
+import { useFlash } from '@/hooks/use-flash';
 import { useNow } from '@/hooks/use-now';
 import { eventPhase, fetchEvent, fetchPhotos, shotsLeft, uploadPhoto } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
@@ -39,7 +40,6 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
-  const [isFlashOn, setIsFlashOn] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -49,6 +49,7 @@ export default function CameraScreen() {
   const [justTaken, setJustTaken] = useState<LocalShot[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const cameraZoom = useCameraZoom(facing);
+  const flash = useFlash(facing);
   const now = useNow(PHASE_TICK_MS);
 
   const { data, error, isLoading, reload } = useFocusedAsync(async () => {
@@ -75,11 +76,12 @@ export default function CameraScreen() {
   ];
 
   async function handleShutter() {
-    if (!cameraRef.current || !canShoot) return;
+    const camera = cameraRef.current;
+    if (!camera || !canShoot) return;
     setIsSaving(true);
     setStatus(null);
     try {
-      const picture = await cameraRef.current.takePictureAsync({ quality: PHOTO_QUALITY });
+      const picture = await flash.capture(() => camera.takePictureAsync({ quality: PHOTO_QUALITY }));
       setJustTaken((shots) => [{ uri: picture.uri, path: null }, ...shots]);
       const path = await uploadPhoto(event.id, userId, picture.uri, event.cameraId);
       setJustTaken((shots) => shots.map((shot) => (shot.uri === picture.uri ? { ...shot, path } : shot)));
@@ -111,14 +113,19 @@ export default function CameraScreen() {
     }
     return (
       <GestureDetector gesture={cameraZoom.pinch}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={facing}
-          flash={isFlashOn ? 'on' : 'off'}
-          onCameraReady={() => setIsReady(true)}
-          {...cameraZoom.cameraProps}
-        />
+        <View ref={flash.viewfinderRef} style={styles.camera} collapsable={false}>
+          <CameraView
+            ref={cameraRef}
+            style={styles.camera}
+            facing={facing}
+            onCameraReady={() => {
+              setIsReady(true);
+              flash.onCameraReady();
+            }}
+            {...flash.cameraProps}
+            {...cameraZoom.cameraProps}
+          />
+        </View>
       </GestureDetector>
     );
   }
@@ -176,19 +183,24 @@ export default function CameraScreen() {
             </View>
           )}
           <View style={styles.viewfinderControls} pointerEvents="box-none">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={isFlashOn ? 'Turn flash off' : 'Turn flash on'}
-              hitSlop={10}
-              style={styles.overlayBtn}
-              onPress={() => setIsFlashOn((on) => !on)}>
-              <Icon
-                ios={isFlashOn ? 'bolt.fill' : 'bolt.slash.fill'}
-                material={isFlashOn ? 'flash_on' : 'flash_off'}
-                size={20}
-                color={C.white}
-              />
-            </Pressable>
+            {flash.isSupported ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={flash.isOn ? 'Turn flash off' : 'Turn flash on'}
+                hitSlop={10}
+                style={styles.overlayBtn}
+                onPress={flash.toggle}>
+                <Icon
+                  ios={flash.isOn ? 'bolt.fill' : 'bolt.slash.fill'}
+                  material={flash.isOn ? 'flash_on' : 'flash_off'}
+                  size={20}
+                  color={C.white}
+                />
+              </Pressable>
+            ) : (
+              // This camera can't flash in this browser; keep the zoom pills centred.
+              <View style={styles.overlaySpacer} />
+            )}
             <ZoomPills
               hasUltraWide={cameraZoom.hasUltraWide}
               isUltraWide={cameraZoom.isUltraWide}
@@ -265,6 +277,7 @@ export default function CameraScreen() {
       {viewerIndex !== null && (
         <PhotoViewer urls={recent} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
       )}
+      {flash.overlay}
     </GestureHandlerRootView>
   );
 }
@@ -307,6 +320,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
+  overlaySpacer: { width: 44, height: 44 },
   notice: { position: 'absolute', top: 16, left: 16, right: 16, alignItems: 'center', gap: 10 },
   status: {
     ...T.caption,

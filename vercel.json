@@ -6,6 +6,17 @@
   "rewrites": [
     {
       "source": "/join/:code",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|facebookcatalog|meta-externalagent|Facebot|Twitterbot|WhatsApp|Slackbot|Discordbot|TelegramBot|LinkedInBot|Pinterest|SkypeUriPreview|Viber|redditbot|Applebot|Googlebot|bingbot|Embedly|Iframely|vkShare|KAKAOTALK|Mastodon|Bluesky).*"
+        }
+      ],
+      "destination": "/api/join-preview?code=:code"
+    },
+    {
+      "source": "/join/:code",
       "destination": "/join/[code]"
     },
     {

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { C, Fonts } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -16,6 +17,8 @@ const TABS = {
 function FloatingTabBar({ state, navigation }: TabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // Guests joined from an invite link; starting a roll needs an account.
+  const { isGuest } = useAuth();
 
   function renderTab(name: keyof typeof TABS) {
     const index = state.routes.findIndex((r) => r.name === name);
@@ -49,13 +52,15 @@ function FloatingTabBar({ state, navigation }: TabBarProps) {
     <View pointerEvents="box-none" style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) }]}>
       <View style={styles.bar}>
         {renderTab('index')}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="New roll"
-          style={({ pressed }) => [styles.create, pressed && styles.pressed]}
-          onPress={() => router.push('/create/name')}>
-          <Icon ios="plus" material="add" size={26} color={C.onPrimary} />
-        </Pressable>
+        {!isGuest && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="New roll"
+            style={({ pressed }) => [styles.create, pressed && styles.pressed]}
+            onPress={() => router.push('/create/name')}>
+            <Icon ios="plus" material="add" size={26} color={C.onPrimary} />
+          </Pressable>
+        )}
         {renderTab('profile')}
       </View>
     </View>

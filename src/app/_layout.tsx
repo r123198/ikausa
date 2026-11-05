@@ -1,7 +1,9 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { useFonts } from 'expo-font';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { CreateEventProvider } from '@/context/create-event-context';
@@ -10,7 +12,7 @@ import { isAppClip } from '@/lib/app-clip';
 SplashScreen.preventAutoHideAsync();
 
 function RootStack() {
-  const { session, isReady } = useAuth();
+  const { session, isReady, isGuest } = useAuth();
   const [fontsLoaded, fontError] = useFonts({
     PlayfairDisplay: require('@/assets/fonts/Playfair_Display/PlayfairDisplay-VariableFont_wght.ttf'),
     'PlayfairDisplay-Italic': require('@/assets/fonts/Playfair_Display/PlayfairDisplay-Italic-VariableFont_wght.ttf'),
@@ -35,6 +37,9 @@ function RootStack() {
       {/* The App Clip is for invited guests: no home tabs, profile or roll creation. */}
       <Stack.Protected guard={Boolean(session) && !isAppClip}>
         <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      {/* Starting a roll needs an account; guests only join. */}
+      <Stack.Protected guard={Boolean(session) && !isAppClip && !isGuest}>
         <Stack.Screen name="create/name" />
         <Stack.Screen name="create/finish" />
         <Stack.Screen name="create/reveal" />
@@ -57,6 +62,12 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <ThemeProvider value={DarkTheme}>
+      {/* Browser tab title on web; pages like Studio set their own, which take precedence. */}
+      {Platform.OS === 'web' && (
+        <Head>
+          <title>Ikausa</title>
+        </Head>
+      )}
       <AuthProvider>
         <CreateEventProvider>
           <RootStack />

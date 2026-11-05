@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,6 +18,7 @@ import { InviteSheet } from '@/components/invite-sheet';
 import { authorLabel, PhotoGrid } from '@/components/photo-grid';
 import { PhotoViewer } from '@/components/photo-viewer';
 import { RollDetailsSheet } from '@/components/roll-details-sheet';
+import { ExportCard, type ExportState } from '@/components/roll/export-card';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
@@ -33,7 +35,9 @@ import {
   type EventSummary,
   type Photo,
 } from '@/lib/events';
+import { zipFileName, type ExportResult, type ExportVia } from '@/lib/export-common';
 import { exportErrorMessage, exportPhotos } from '@/lib/export-photos';
+import { markRollExported, rollExport } from '@/lib/exported-rolls';
 import { formatDate, pluralize, timeUntil } from '@/lib/format';
 
 const PAGE_PADDING = 20;
@@ -95,8 +99,13 @@ export default function RollScreen() {
   const { width } = useWindowDimensions();
   const now = useNow();
   const [openSheet, setOpenSheet] = useState<'invite' | 'details' | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportStatus, setExportStatus] = useState<{ text: string; isError: boolean } | null>(null);
+  const [exportState, setExportState] = useState<ExportState | null>(null);
+  /** Set once this roll has been fully saved on this device. */
+  const [savedRecord, setSavedRecord] = useState(() => rollExport(id));
+  /** iPhone/iPad web: the fetched photos, waiting for the tap that opens the share sheet. */
+  const pendingSave = useRef<{ result: ExportResult; save: NonNullable<ExportResult['saveToPhotos']> } | null>(
+    null
+  );
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const { data, error, isLoading, reload } = useFocusedAsync(
@@ -121,17 +130,54 @@ export default function RollScreen() {
   const left = shotsLeft(event);
   const contentWidth = Math.min(width, MAX_CONTENT_WIDTH) - PAGE_PADDING * 2;
 
-  async function handleExport() {
-    setIsExporting(true);
-    setExportStatus(null);
-    try {
-      const saved = await exportPhotos(photos);
-      setExportStatus({ text: `Saved ${pluralize(saved, 'photo')}.`, isError: false });
-    } catch (e) {
-      setExportStatus({ text: exportErrorMessage(e), isError: true });
-    } finally {
-      setIsExporting(false);
+  const isExporting = exportState?.kind === 'running';
+
+  function finishExport({ saved, failed, via }: ExportResult) {
+    if (failed === 0) {
+      markRollExported(event.id, saved, via);
+      setSavedRecord(rollExport(event.id));
     }
+    setExportState({ kind: 'done', saved, failed, via });
+  }
+
+  async function handleExport() {
+    pendingSave.current = null;
+    setExportState({ kind: 'running', done: 0, total: photos.length });
+    try {
+      const result = await exportPhotos(photos, {
+        rollName: event.name,
+        onProgress: ({ done, total }) => setExportState({ kind: 'running', done, total }),
+      });
+      if (result.saveToPhotos) {
+        pendingSave.current = { result, save: result.saveToPhotos };
+        setExportState({ kind: 'ready', count: result.saved, failed: result.failed });
+        return;
+      }
+      finishExport(result);
+    } catch (e) {
+      setExportState({ kind: 'error', message: exportErrorMessage(e) });
+    }
+  }
+
+  /** Runs straight from the button press: Safari only opens the share sheet on a fresh tap. */
+  function handleSaveToPhotos() {
+    const pending = pendingSave.current;
+    if (!pending) return;
+    pending
+      .save()
+      .then((outcome) => {
+        // Closing the sheet keeps the photos ready, so the user can tap again.
+        if (outcome === 'cancelled') return;
+        pendingSave.current = null;
+        finishExport(pending.result);
+      })
+      .catch((e: unknown) => setExportState({ kind: 'error', message: exportErrorMessage(e) }));
+  }
+
+  function savedLabel(via: ExportVia | null): string {
+    if (via === 'zip') return 'Downloaded';
+    if (via === null && Platform.OS === 'web') return 'Downloaded';
+    return 'Saved to Photos';
   }
 
   return (
@@ -177,18 +223,45 @@ export default function RollScreen() {
                 {pluralize(event.memberCount, 'person', 'people')} joined
               </Text>
             </View>
+            {savedRecord && (
+              <View style={styles.metaRow}>
+                <Icon ios="checkmark.circle.fill" material="download_done" size={15} color={C.primary} />
+                <Text style={[styles.metaText, styles.savedText]}>
+                  {savedLabel(savedRecord.via)} · {formatDate(savedRecord.at)}
+                </Text>
+              </View>
+            )}
           </View>
           <CoverImage cover={event.cover} style={styles.cover} />
         </View>
 
+        {exportState && (
+          <ExportCard
+            state={exportState}
+            rollFileName={zipFileName(event.name)}
+            onRetry={handleExport}
+            onSaveToPhotos={handleSaveToPhotos}
+            onDismiss={() => {
+              pendingSave.current = null;
+              setExportState(null);
+            }}
+          />
+        )}
+
         <View style={styles.actions}>
           <Button
-            label="Export"
+            label={savedRecord ? 'Saved' : 'Export'}
             variant="outline"
             size="sm"
             disabled={phase !== 'ready' || photos.length === 0}
             isLoading={isExporting}
-            icon={<Icon ios="square.and.arrow.down" material="download" size={16} color={C.onSurface} />}
+            icon={
+              savedRecord ? (
+                <Icon ios="checkmark" material="check" size={16} color={C.primary} />
+              ) : (
+                <Icon ios="square.and.arrow.down" material="download" size={16} color={C.onSurface} />
+              )
+            }
             onPress={handleExport}
           />
           <Button
@@ -208,13 +281,6 @@ export default function RollScreen() {
             onPress={() => router.push(`/camera/${event.id}`)}
           />
         </View>
-        {exportStatus && (
-          <Text
-            style={[styles.status, exportStatus.isError && styles.statusError]}
-            accessibilityLiveRegion="polite">
-            {exportStatus.text}
-          </Text>
-        )}
 
         <View style={styles.rule} />
 
@@ -292,11 +358,10 @@ const styles = StyleSheet.create({
   title: { ...T.headlineLgMobile, fontSize: 34, lineHeight: 40, marginBottom: 4 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   metaText: { ...T.caption, fontSize: 14, color: C.textSoft },
+  savedText: { color: C.primary },
   cover: { width: 88, height: 88, borderRadius: 18 },
 
   actions: { flexDirection: 'row', gap: 8 },
-  status: { ...T.caption, fontSize: 14, textAlign: 'center' },
-  statusError: { color: C.error },
   rule: { height: 1, backgroundColor: C.hairline },
   empty: { ...T.caption, fontSize: 15, lineHeight: 22, textAlign: 'center', paddingVertical: 32 },
 
