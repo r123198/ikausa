@@ -35,11 +35,10 @@ function RootStack() {
         <Stack.Screen name="join/limit-reached" />
       </Stack.Protected>
       {/* The App Clip is for invited guests: no home tabs, profile or roll creation. */}
-      <Stack.Protected guard={Boolean(session) && !isAppClip}>
-        <Stack.Screen name="(tabs)" />
-      </Stack.Protected>
-      {/* Starting a roll needs an account; guests only join. */}
+      {/* Home, Profile and starting a roll need an account. Guests (and App Clip users)
+          only move between the rolls they joined and the camera. */}
       <Stack.Protected guard={Boolean(session) && !isAppClip && !isGuest}>
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="create/name" />
         <Stack.Screen name="create/finish" />
         <Stack.Screen name="create/reveal" />

@@ -145,7 +145,7 @@ export default function CameraScreen() {
             accessibilityLabel="Back"
             hitSlop={10}
             style={styles.iconBtn}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+            onPress={() => (router.canGoBack() ? router.back() : router.replace(`/roll/${id}`))}>
             <Icon ios="chevron.left" material="arrow_back" size={22} color={C.white} />
           </Pressable>
           <View style={styles.titleBlock}>

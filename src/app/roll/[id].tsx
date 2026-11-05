@@ -95,7 +95,7 @@ function HeaderButton({
 export default function RollScreen() {
   const router = useRouter();
   const { id, notice } = useLocalSearchParams<{ id: string; notice?: string }>();
-  const { session } = useAuth();
+  const { session, isGuest } = useAuth();
   const { width } = useWindowDimensions();
   const now = useNow();
   const [openSheet, setOpenSheet] = useState<'invite' | 'details' | null>(null);
@@ -183,8 +183,8 @@ export default function RollScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.topBar}>
-        {/* In the App Clip this roll is the start screen, so there's nowhere to go back to. */}
-        {isAppClip && !router.canGoBack() ? (
+        {/* For guests and the App Clip this roll is the start screen: there's nowhere to go back to. */}
+        {(isAppClip || isGuest) && !router.canGoBack() ? (
           <View style={styles.headerSpacer} />
         ) : (
           <HeaderButton

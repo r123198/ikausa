@@ -9,8 +9,8 @@ import { useFocusedAsync } from '@/hooks/use-async';
 import { eventPhase, fetchMyEvents } from '@/lib/events';
 
 /**
- * The App Clip's start screen: straight into the roll the guest joined
- * (a live one first), or a prompt to scan an invite if there isn't one.
+ * Start screen for guests and the App Clip, who have no Home: straight into the roll
+ * they joined (a live one first), or a prompt to open an invite if there isn't one.
  */
 export function ClipHome() {
   const { data: events, error, isLoading, reload } = useFocusedAsync(fetchMyEvents, []);
