@@ -1,4 +1,8 @@
 {
+  "framework": null,
+  "installCommand": "echo 'Static site: nothing to install'",
+  "buildCommand": "echo 'Static site: nothing to build'",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "redirects": [
     {

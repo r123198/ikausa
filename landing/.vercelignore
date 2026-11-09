@@ -1,0 +1,3 @@
+# Dev-only files; the site itself is the HTML, CSS, JS and images.
+scripts
+*.md
