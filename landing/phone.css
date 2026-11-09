@@ -431,7 +431,10 @@
   border-radius: 0.9em;
   background: #1a1a1c;
 }
-.tile img { width: 100%; }
+/* Fixed shapes, so any photo you drop in keeps the same staggered grid. */
+.tile img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.tile:nth-child(3n + 2) img { aspect-ratio: 1; }
+.tile:nth-child(4n + 3) img { aspect-ratio: 3 / 4; }
 .tile span {
   position: absolute;
   top: 0.5em;

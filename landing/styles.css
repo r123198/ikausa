@@ -615,7 +615,7 @@ a { color: inherit; }
   color: var(--color-text-soft);
   font-size: 0.9375rem;
 }
-.site-footer__brand { display: grid; gap: 0.75rem; }
+.site-footer__brand { display: grid; align-content: start; gap: 0.75rem; }
 .site-footer__nav { display: flex; flex-wrap: wrap; gap: 3rem 5rem; }
 .site-footer__nav h2 {
   margin-bottom: 0.9rem;
@@ -634,6 +634,52 @@ a { color: inherit; }
   font-size: 0.875rem;
 }
 .site-footer__legal em { font-family: var(--font-display); }
+
+.site-footer--simple { display: block; padding-top: 0; border-top: 0; }
+.site-footer__legal a { text-decoration-color: var(--color-night-line); }
+.site-footer__legal a:hover { color: var(--color-primary); }
+
+/* ---------- Legal pages ---------- */
+
+.legal {
+  display: grid;
+  gap: 3rem;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 1rem + 4vw, 4.5rem) var(--gutter) var(--space-section);
+}
+.legal__head { display: grid; gap: 1rem; }
+.legal h1 { font-size: var(--text-h2); line-height: 1.05; }
+.legal__date { font-family: var(--font-stamp); font-size: 0.75rem; color: var(--color-text-soft); }
+
+.legal__toc {
+  padding: 1.5rem 1.75rem;
+  border: 1px solid var(--color-night-line);
+  border-radius: var(--radius-frame);
+  background: var(--color-night-raised);
+}
+.legal__toc ol { columns: 2 14rem; column-gap: 2rem; margin: 0; padding-left: 1.2rem; }
+.legal__toc li { padding: 0.2rem 0; break-inside: avoid; color: var(--color-text-soft); }
+.legal__toc a { color: var(--color-text); text-decoration: none; }
+.legal__toc a:hover { color: var(--color-primary); }
+
+.legal section { display: grid; gap: 0.9rem; scroll-margin-top: 1.5rem; }
+.legal h2 { font-size: clamp(1.5rem, 1.3rem + 0.8vw, 2rem); line-height: 1.15; }
+.legal h3 { margin-top: 0.6rem; font-weight: 700; font-size: 1.0625rem; }
+.legal p,
+.legal li { color: var(--color-text-warm); }
+.legal ul { display: grid; gap: 0.5rem; margin: 0; padding-left: 1.2rem; }
+.legal strong { color: var(--color-text); }
+.legal a { color: var(--color-primary); }
+
+/* Unfilled details stand out so they can't ship by accident. */
+mark {
+  padding: 0 0.3em;
+  border-radius: 3px;
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-weight: 700;
+}
 
 /* ---------- Wider screens ---------- */
 
