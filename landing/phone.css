@@ -1,0 +1,532 @@
+/*
+ * Phone mockup and the app screens shown inside it.
+ * Screens mirror the real app (src/app/join, camera, developing, roll; src/components/invite-sheet).
+ * Everything inside the phone is sized in em: 1em is 16pt on a 393pt-wide iPhone screen,
+ * so changing --phone-w scales the whole device.
+ */
+
+.phone {
+  --phone-w: 18rem;
+  --phone-bezel: calc(var(--phone-w) * 0.035);
+  position: relative;
+  flex: none;
+  width: var(--phone-w);
+  aspect-ratio: 393 / 852;
+  padding: var(--phone-bezel);
+  border-radius: calc(var(--phone-w) * 0.17);
+  background: linear-gradient(150deg, #47474c 0%, #18181a 30%, #0b0b0c 70%, #3a3a3f 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 0 0 calc(var(--phone-bezel) * 0.55) #050506,
+    0 60px 90px -40px rgba(0, 0, 0, 0.95),
+    0 30px 60px -30px rgba(244, 162, 97, 0.18);
+  font-size: calc(var(--phone-w) / 26.4);
+}
+
+.phone__screen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: calc(var(--phone-w) * 0.135);
+  background: var(--color-night);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.3;
+  text-align: left;
+}
+.phone svg {
+  width: 1.4em;
+  height: 1.4em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.phone p { margin: 0; }
+
+.phone__island {
+  position: absolute;
+  top: 0.7em;
+  left: 50%;
+  z-index: 6;
+  width: 7.7em;
+  height: 2.3em;
+  translate: -50% 0;
+  border-radius: 2em;
+  background: #000;
+}
+
+.status-bar {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.7em;
+  padding: 0.3em 2em 0 2.5em;
+  font-weight: 600;
+  font-size: 1em;
+  color: #fff;
+  pointer-events: none;
+}
+.status-bar__battery {
+  width: 1.55em;
+  height: 0.75em;
+  border-radius: 0.25em;
+  background: linear-gradient(90deg, #fff 78%, rgba(255, 255, 255, 0.35) 78%);
+}
+
+/* Screens stack on top of each other; the tour fades between them. */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 600ms var(--ease-out-expo);
+}
+.screen.is-active { opacity: 1; }
+
+/* ---------- Shared app pieces ---------- */
+
+.app-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5em;
+  height: 58%;
+  padding: 0 1.4em 0.4em;
+  text-align: center;
+}
+.app-hero--short { height: 44%; }
+.app-hero > img {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.app-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(rgba(15, 15, 16, 0.15), rgba(15, 15, 16, 0.4) 50%, var(--color-night));
+}
+
+.app-eyebrow {
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+.app-title {
+  font-family: var(--font-display);
+  font-size: 2.1em;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
+}
+
+.app-stats {
+  display: flex;
+  justify-content: space-around;
+  align-self: stretch;
+  margin-top: 0.5em;
+}
+.app-stats p {
+  display: grid;
+  justify-items: center;
+  gap: 0.1em;
+  min-width: 5em;
+  font-size: 0.85em;
+  color: var(--color-text-soft);
+}
+.app-stats b {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.65em;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.app-actions {
+  display: grid;
+  gap: 1em;
+  margin-top: auto;
+  padding: 1.2em 1.5em 2.6em;
+}
+.app-field { display: grid; gap: 0.45em; font-size: 0.85em; color: var(--color-text-soft); }
+.app-field .app-input { font-size: 1.15em; }
+
+.app-input {
+  display: block;
+  padding: 0.85em 1em;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.9em;
+  background: #1a1a1c;
+  color: #8d8d92;
+}
+.app-input--typing { color: var(--color-text); }
+.app-input--typing::after {
+  content: '';
+  display: inline-block;
+  width: 0.08em;
+  height: 1.1em;
+  margin-left: 0.1em;
+  vertical-align: -0.2em;
+  background: var(--color-primary);
+  animation: caret 1s steps(1) infinite;
+}
+
+.app-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  height: 3.3em;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 700;
+}
+.app-button svg { width: 1.25em; height: 1.25em; }
+
+/* ---------- Camera (src/app/camera/[id].tsx) ---------- */
+
+.cam-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 3.8em 0.8em 0.7em;
+}
+.cam-icon { display: grid; place-items: center; width: 2.6em; height: 2.6em; color: #fff; }
+.cam-title {
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  gap: 0.2em;
+  min-width: 0;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+}
+.cam-title > span {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.78em;
+  font-weight: 400;
+  color: #8d8d92;
+}
+.cam-title > span svg { width: 1.05em; height: 1.05em; }
+
+.cam-viewfinder {
+  position: relative;
+  flex: 1;
+  margin: 0 0.5em;
+  overflow: hidden;
+  border-radius: 1.5em;
+  background: #000;
+}
+.cam-viewfinder > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cam-viewfinder .stamp { right: 1.4em; bottom: 4.6em; z-index: 1; font-size: 0.8em; }
+
+.cam-overlay {
+  position: absolute;
+  inset: auto 1em 1em;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cam-round {
+  display: grid;
+  place-items: center;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+}
+.cam-round svg { width: 1.2em; height: 1.2em; }
+
+.zoom-pills {
+  display: flex;
+  gap: 0.2em;
+  padding: 0.25em;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.zoom-pills span {
+  display: grid;
+  place-items: center;
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 50%;
+  font-size: 0.7em;
+  font-weight: 600;
+  color: #fff;
+}
+.zoom-pills .is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-primary);
+  font-size: 0.82em;
+}
+
+.cam-controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 1.2em 1em 2.6em;
+}
+
+.film-counter {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.5em;
+  height: 3.25em;
+  padding: 0 0.9em;
+  border: 1px solid var(--color-night-line);
+  border-radius: 1.1em;
+  background: #000;
+  color: var(--color-text-soft);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+.film-counter svg { width: 1em; height: 1em; }
+.film-counter i { min-width: 0.9em; font-size: 1em; color: rgba(255, 255, 255, 0.3); }
+.film-counter b { font-weight: 400; font-size: 1.6em; color: #fff; }
+
+.shutter {
+  width: 5.1em;
+  height: 5.1em;
+  padding: 0.3em;
+  border: 0.25em solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+}
+.shutter::before {
+  content: '';
+  display: block;
+  height: 100%;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* ---------- Developing (src/app/developing/[id].tsx) ---------- */
+
+.dev {
+  align-items: center;
+  justify-content: center;
+  gap: 1.2em;
+  padding: 4em 1.6em 2em;
+  text-align: center;
+}
+.dev::before {
+  content: '';
+  position: absolute;
+  inset: 10%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(244, 162, 97, 0.14), transparent);
+  transform: scaleX(1.5);
+}
+.dev__back {
+  position: absolute;
+  top: 4em;
+  left: 1.4em;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  font-size: 0.9em;
+  color: var(--color-text-warm);
+}
+.dev__back svg { width: 1.15em; height: 1.15em; }
+.dev__logo {
+  width: 3em;
+  height: 3em;
+  border-radius: 0.8em;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+.dev__badge {
+  max-width: 100%;
+  padding: 0.35em 0.9em;
+  border: 1px solid rgba(216, 194, 181, 0.3);
+  border-radius: 999px;
+  font-size: 0.8em;
+  color: var(--color-text-warm);
+}
+.dev__headline { font-family: var(--font-display); font-size: 2em; line-height: 1.15; }
+.dev__ring {
+  display: grid;
+  place-items: center;
+  width: 11.25em;
+  height: 11.25em;
+  border: 2px solid rgba(244, 162, 97, 0.2);
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(255, 196, 153, 0.1), inset 0 0 30px rgba(255, 196, 153, 0.06);
+}
+.dev__ring p {
+  font-family: var(--font-display);
+  font-size: 2.7em;
+  color: var(--color-primary);
+}
+.dev__ring span { margin: 0 0.1em; opacity: 0.5; }
+.dev__labels {
+  display: flex;
+  gap: 2.6em;
+  margin-top: -0.6em;
+  font-size: 0.75em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8d8d92;
+}
+.dev__sub { max-width: 19em; font-size: 0.85em; color: var(--color-text-soft); }
+
+/* ---------- Roll (src/app/roll/[id].tsx, src/components/photo-tile.tsx) ---------- */
+
+.roll-btn {
+  position: absolute;
+  top: 3.9em;
+  display: grid;
+  place-items: center;
+  width: 2.5em;
+  height: 2.5em;
+  border-radius: 50%;
+  background: rgba(15, 15, 16, 0.5);
+  color: var(--color-text);
+}
+.roll-btn svg { width: 1.2em; height: 1.2em; }
+.roll-btn--left { left: 1em; }
+.roll-btn--right { right: 1em; }
+
+.roll-grid {
+  columns: 2;
+  column-gap: 0.5em;
+  padding: 0.9em 0.75em 0;
+}
+.tile {
+  position: relative;
+  margin: 0 0 0.5em;
+  overflow: hidden;
+  break-inside: avoid;
+  border-radius: 0.9em;
+  background: #1a1a1c;
+}
+.tile img { width: 100%; }
+.tile span {
+  position: absolute;
+  top: 0.5em;
+  left: 0.5em;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 0.65em;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* The album section's roll scrolls on its own, like someone browsing it. */
+/* Two identical grids, moved up by exactly one grid's height, so the loop has no seam. */
+.roll-feed { position: relative; flex: 1; overflow: hidden; padding-top: 0.9em; }
+.roll-feed__track { animation: feed 38s linear infinite; }
+.roll-feed__track .roll-grid { padding-top: 0; }
+
+/* ---------- Create flow (src/app/create/name.tsx) ---------- */
+
+.create { gap: 1em; padding: 4.4em 1.5em 2em; }
+.create__dots { display: flex; gap: 0.4em; }
+.create__dots span { width: 0.45em; height: 0.45em; border-radius: 50%; background: rgba(255, 255, 255, 0.2); }
+.create__dots .is-active { width: 1.6em; border-radius: 999px; background: var(--color-primary); }
+.create__title { font-family: var(--font-display); font-size: 1.75em; line-height: 1.15; }
+.create__sub { font-size: 0.9em; color: var(--color-text-soft); }
+.create .app-input { margin-top: 0.4em; font-size: 1.1em; }
+.create .app-eyebrow { margin-top: 0.4em; color: var(--color-text-soft); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.5em; }
+.chips span {
+  padding: 0.5em 0.9em;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: 0.85em;
+  color: var(--color-text-soft);
+}
+
+/* ---------- Invite sheet (src/components/invite-sheet.tsx) ---------- */
+
+.sheet-screen { justify-content: flex-end; }
+.sheet-screen__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.35);
+}
+.sheet {
+  display: grid;
+  justify-items: center;
+  gap: 0.8em;
+  padding: 1.6em 1.5em 2.6em;
+  border-radius: 1.8em 1.8em 0 0;
+  background: #1a1a1c;
+  text-align: center;
+}
+.sheet__title { font-family: var(--font-display); font-size: 1.7em; }
+.sheet__sub {
+  padding-bottom: 1em;
+  border-bottom: 2px dotted rgba(255, 255, 255, 0.15);
+  font-size: 0.85em;
+  color: var(--color-text-soft);
+}
+.sheet__qr { width: 9.5em; height: 9.5em; padding: 0.6em; border-radius: 1em; background: #fff; }
+.sheet__code {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1em;
+  letter-spacing: 0.25em;
+  color: var(--color-text-soft);
+}
+.sheet__actions { display: flex; gap: 0.6em; }
+.sheet__actions span {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.55em 0.9em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.sheet__actions svg { width: 1.2em; height: 1.2em; }
+
+/* ---------- Motion ---------- */
+
+@keyframes caret { 50% { opacity: 0; } }
+@keyframes pulse { 50% { opacity: 0.6; transform: scale(0.94); } }
+@keyframes feed { to { transform: translateY(-50%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen { transition: none; }
+  .roll-feed__track,
+  .dev__logo,
+  .app-input--typing::after { animation: none; }
+}
