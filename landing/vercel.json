@@ -7,62 +7,62 @@
   "redirects": [
     {
       "source": "/join/:path*",
-      "destination": "https://ikausa-app.vercel.app/join/:path*",
+      "destination": "https://ikausa.vercel.app/join/:path*",
       "permanent": false
     },
     {
       "source": "/roll/:path*",
-      "destination": "https://ikausa-app.vercel.app/roll/:path*",
+      "destination": "https://ikausa.vercel.app/roll/:path*",
       "permanent": false
     },
     {
       "source": "/camera/:path*",
-      "destination": "https://ikausa-app.vercel.app/camera/:path*",
+      "destination": "https://ikausa.vercel.app/camera/:path*",
       "permanent": false
     },
     {
       "source": "/developing/:path*",
-      "destination": "https://ikausa-app.vercel.app/developing/:path*",
+      "destination": "https://ikausa.vercel.app/developing/:path*",
       "permanent": false
     },
     {
       "source": "/host/:path*",
-      "destination": "https://ikausa-app.vercel.app/host/:path*",
+      "destination": "https://ikausa.vercel.app/host/:path*",
       "permanent": false
     },
     {
       "source": "/studio",
-      "destination": "https://ikausa-app.vercel.app/studio",
+      "destination": "https://ikausa.vercel.app/studio",
       "permanent": false
     },
     {
       "source": "/studio/:path*",
-      "destination": "https://ikausa-app.vercel.app/studio/:path*",
+      "destination": "https://ikausa.vercel.app/studio/:path*",
       "permanent": false
     },
     {
       "source": "/sign-in",
-      "destination": "https://ikausa-app.vercel.app/sign-in",
+      "destination": "https://ikausa.vercel.app/sign-in",
       "permanent": false
     },
     {
       "source": "/onboarding",
-      "destination": "https://ikausa-app.vercel.app/onboarding",
+      "destination": "https://ikausa.vercel.app/onboarding",
       "permanent": false
     },
     {
       "source": "/auth/:path*",
-      "destination": "https://ikausa-app.vercel.app/auth/:path*",
+      "destination": "https://ikausa.vercel.app/auth/:path*",
       "permanent": false
     },
     {
       "source": "/profile",
-      "destination": "https://ikausa-app.vercel.app/profile",
+      "destination": "https://ikausa.vercel.app/profile",
       "permanent": false
     },
     {
       "source": "/create/:path*",
-      "destination": "https://ikausa-app.vercel.app/create/:path*",
+      "destination": "https://ikausa.vercel.app/create/:path*",
       "permanent": false
     }
   ],
