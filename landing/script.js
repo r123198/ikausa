@@ -58,7 +58,7 @@ function setUpTour() {
   function stopForGood() {
     isStopped = true;
     stopTimer();
-    pauseButton.hidden = true;
+    if (pauseButton) pauseButton.hidden = true;
   }
 
   steps.forEach((step, i) => {
@@ -70,8 +70,10 @@ function setUpTour() {
 
   if (isStopped) return;
 
-  pauseButton.hidden = false;
-  pauseButton.addEventListener('click', stopForGood);
+  if (pauseButton) {
+    pauseButton.hidden = false;
+    pauseButton.addEventListener('click', stopForGood);
+  }
 
   new IntersectionObserver(([entry]) => {
     if (entry.isIntersecting) startTimer();
