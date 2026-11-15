@@ -3,6 +3,7 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PaymentsPanel } from '@/components/studio/payments-panel';
 import { useStudio } from '@/components/studio/studio-context';
 import { StudioPanel, StudioShell } from '@/components/studio/studio-shell';
 import { Button } from '@/components/ui/button';
@@ -205,6 +206,8 @@ export default function StudioAdmin() {
 
     return (
       <>
+        <PaymentsPanel />
+
         <StudioPanel
           title="Invite an organizer"
           hint="Creates a one-time link that works for 14 days and copies it, ready to send.">

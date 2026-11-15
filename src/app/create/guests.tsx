@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmPaidDialog } from '@/components/create/confirm-paid-dialog';
 import { CreatedDialog } from '@/components/create/created-dialog';
+import { GcashPaySheet } from '@/components/create/gcash-pay-sheet';
 import { WizardScreen } from '@/components/create/wizard-screen';
 import { FannedPhotos } from '@/components/fanned-photos';
 import { FilmCounter } from '@/components/film-counter';
@@ -15,6 +16,7 @@ import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
 import { createEvent, type CreatedEvent } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
 import { fetchCredits, fetchPasses, passSummary, type Pass } from '@/lib/passes';
+import { canPayWithGcash, fetchGcashPrices, fetchPendingPayments, formatPeso, type PaymentRequest } from '@/lib/payments';
 import { buyProduct, canPurchase, fetchStorePrices, waitForCredit } from '@/lib/purchases';
 
 /** Used until the pass catalog loads (and if it fails to). */
@@ -27,10 +29,19 @@ const FALLBACK_FREE_PASS: Pass = {
   displayPrice: null,
 };
 
+/** The web can't use the stores, so paid plans are paid with GCash there. */
+const usesGcash = !canPurchase && canPayWithGcash;
+
+async function loadGcash(): Promise<{ gcashPrices: Map<string, number>; pending: PaymentRequest[] }> {
+  if (!usesGcash) return { gcashPrices: new Map(), pending: [] };
+  const [gcashPrices, pending] = await Promise.all([fetchGcashPrices(), fetchPendingPayments()]);
+  return { gcashPrices, pending };
+}
+
 async function loadPlans() {
-  const [passes, credits] = await Promise.all([fetchPasses(), fetchCredits()]);
+  const [passes, credits, gcash] = await Promise.all([fetchPasses(), fetchCredits(), loadGcash()]);
   const prices = await fetchStorePrices(passes.flatMap((p) => (p.productId ? [p.productId] : [])));
-  return { passes, credits, prices };
+  return { passes, credits, prices, ...gcash };
 }
 
 type GuestLimit = number | null;
@@ -71,17 +82,24 @@ export default function GuestsStep() {
   /** Set when the paid dialog was confirmed, so creating starts once it has closed. */
   const [isCreateQueued, setIsCreateQueued] = useState(false);
   const [created, setCreated] = useState<{ event: CreatedEvent; name: string } | null>(null);
+  const [isPayingGcash, setIsPayingGcash] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const passes = plans.data?.passes ?? [FALLBACK_FREE_PASS];
   const pass = passes.find((p) => p.id === draft.passId) ?? passes[0];
   const owned = plans.data?.credits.get(pass.id) ?? 0;
   const isPaid = pass.productId !== null;
   const needsPurchase = isPaid && owned === 0;
+  const gcashPrice = plans.data?.gcashPrices.get(pass.id);
+  const canPayHere = canPurchase || (usesGcash && gcashPrice !== undefined);
+  const isGcashPending = plans.data?.pending.some((p) => p.passId === pass.id) ?? false;
   const priceLabel = !isPaid
     ? 'Free'
     : owned > 0
       ? `${owned} pass${owned > 1 ? 'es' : ''} owned`
-      : (plans.data?.prices.get(pass.productId!) ?? pass.displayPrice ?? '');
+      : (plans.data?.prices.get(pass.productId!) ??
+        (gcashPrice !== undefined ? formatPeso(gcashPrice) : pass.displayPrice) ??
+        '');
   const film = filmById(draft.cameraId);
   const shotsTotal = draft.selectedShot.value === 'unlimited' ? null : draft.selectedShot.value;
 
@@ -104,8 +122,9 @@ export default function GuestsStep() {
 
   function nextLabel(): string {
     if (!needsPurchase) return 'Create';
-    if (!canPurchase) return 'Buy in the app';
-    return `Buy ${pass.name}`;
+    if (canPurchase) return `Buy ${pass.name}`;
+    if (!canPayHere) return 'Buy in the app';
+    return isGcashPending ? 'Payment being checked' : 'Pay with GCash';
   }
 
   function validationError(): string | null {
@@ -141,7 +160,18 @@ export default function GuestsStep() {
     void handleCreate();
   }
 
+  const handleGcashConfirmed = useCallback(() => {
+    setIsPayingGcash(false);
+    setNotice('Payment confirmed. Tap Create to start your roll.');
+    void plans.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload is stable; plans itself is not
+  }, [plans.reload]);
+
   async function handleCreate() {
+    if (needsPurchase && !canPurchase) {
+      setIsPayingGcash(true);
+      return;
+    }
     try {
       if (needsPurchase) {
         setBusyLabel('Opening store…');
@@ -169,6 +199,7 @@ export default function GuestsStep() {
         cameraId: draft.cameraId,
         cover: draft.cover,
       });
+      setNotice(null);
       setCreated({ event, name });
     } catch (e) {
       setError(errorMessage(e));
@@ -196,8 +227,12 @@ export default function GuestsStep() {
       subtitle="Make sure everyone gets a chance to take the best photo of the night."
       nextLabel={busyLabel ?? nextLabel()}
       isBusy={busyLabel !== null}
-      canContinue={!needsPurchase || canPurchase}
-      footerNote={error ?? (needsPurchase && !canPurchase ? 'Paid plans can be bought in the iOS or Android app.' : null)}
+      canContinue={!needsPurchase || canPayHere}
+      footerNote={
+        error ??
+        notice ??
+        (needsPurchase && !canPayHere ? 'Paid plans can be bought in the iOS or Android app.' : null)
+      }
       onNext={handleNext}>
       <View style={styles.planHeader}>
         <Text style={styles.planTitle}>
@@ -284,10 +319,30 @@ export default function GuestsStep() {
             planName: pass.name,
             priceLabel,
           }}
-          confirmLabel={needsPurchase ? `Confirm & buy ${pass.name}` : 'Confirm & create roll'}
+          confirmLabel={
+            !needsPurchase
+              ? 'Confirm & create roll'
+              : canPurchase
+                ? `Confirm & buy ${pass.name}`
+                : 'Confirm & pay with GCash'
+          }
           onConfirm={confirmPaid}
           onCancel={() => setIsConfirmingPaid(false)}
           onDismissed={handleDialogDismissed}
+        />
+      )}
+      {isPayingGcash && gcashPrice !== undefined && (
+        <GcashPaySheet
+          passId={pass.id}
+          passName={pass.name}
+          amount={gcashPrice}
+          ownedBefore={owned}
+          isAlreadyPending={isGcashPending}
+          onClose={() => {
+            setIsPayingGcash(false);
+            void plans.reload();
+          }}
+          onConfirmed={handleGcashConfirmed}
         />
       )}
       {created && (
