@@ -16,6 +16,9 @@ import { StepDots } from '@/components/create/step-dots';
 import { Icon } from '@/components/icon';
 import { C, T } from '@/constants/theme';
 
+/** Keeps the steps phone-shaped on tablets and desktops (Studio organizers create events on the web). */
+const COLUMN_MAX_WIDTH = 560;
+
 interface WizardScreenProps {
   step: number;
   title: string;
@@ -27,6 +30,8 @@ interface WizardScreenProps {
   onNext: () => void;
   /** Shown above the footer, e.g. a validation hint or error. */
   footerNote?: string | null;
+  /** `info` for neutral notes, e.g. a confirmation. Defaults to `error`. */
+  footerNoteTone?: 'error' | 'info';
   scroll?: boolean;
 }
 
@@ -41,6 +46,7 @@ export function WizardScreen({
   isBusy = false,
   onNext,
   footerNote,
+  footerNoteTone = 'error',
   scroll = true,
 }: WizardScreenProps) {
   const router = useRouter();
@@ -55,7 +61,7 @@ export function WizardScreen({
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, styles.column]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={step === 1 ? 'Close' : 'Back'}
@@ -71,23 +77,25 @@ export function WizardScreen({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scroll ? (
           <ScrollView
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[styles.content, styles.column]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             {header}
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.content, styles.flex]}>
+          <View style={[styles.content, styles.column, styles.flex]}>
             {header}
             {children}
           </View>
         )}
       </KeyboardAvoidingView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, styles.column]}>
         {footerNote && (
-          <Text style={styles.footerNote} accessibilityLiveRegion="polite">
+          <Text
+            style={[styles.footerNote, footerNoteTone === 'info' && styles.footerNoteInfo]}
+            accessibilityLiveRegion="polite">
             {footerNote}
           </Text>
         )}
@@ -117,6 +125,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
   flex: { flex: 1 },
   pressed: { opacity: 0.85 },
+  column: { width: '100%', maxWidth: COLUMN_MAX_WIDTH, alignSelf: 'center' },
   topBar: { paddingHorizontal: 20, paddingTop: 4 },
   backBtn: {
     width: 46,
@@ -134,6 +143,7 @@ const styles = StyleSheet.create({
   subtitle: { ...T.bodyMd, fontSize: 15, lineHeight: 22, color: C.textMuted, textAlign: 'center' },
   footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, gap: 10 },
   footerNote: { ...T.caption, fontSize: 14, color: C.error, textAlign: 'center' },
+  footerNoteInfo: { color: C.textSoft },
   footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   next: {
     flexDirection: 'row',
@@ -145,5 +155,5 @@ const styles = StyleSheet.create({
     backgroundColor: C.primary,
   },
   nextDisabled: { opacity: 0.4 },
-  nextLabel: { ...T.bodyMd, fontWeight: '700', color: C.onPrimary },
+  nextLabel: { ...T.bodyMd, fontWeight: '600', color: C.onPrimary },
 });

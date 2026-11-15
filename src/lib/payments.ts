@@ -51,8 +51,10 @@ export function normalizeReference(input: string): string | null {
   return /^[A-Z0-9]{6,30}$/.test(ref) ? ref : null;
 }
 
+/** ₱1,899 for whole pesos, ₱309.50 otherwise. */
 export function formatPeso(amount: number): string {
-  return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const decimals = Number.isInteger(amount) ? 0 : 2;
+  return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: decimals, maximumFractionDigits: 2 })}`;
 }
 
 export async function submitPayment(passId: string, reference: string): Promise<void> {

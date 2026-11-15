@@ -33,7 +33,7 @@ async function loadAdmin() {
     fetchOrganizerInvites(),
     fetchPasses(),
   ]);
-  return { organizers, invites, paidPasses: passes.filter((p) => p.productId !== null) };
+  return { organizers, invites, paidPasses: passes.filter((p) => p.productId !== null && p.isActive) };
 }
 
 function inviteStatus(invite: OrganizerInvite, now: Date): string {
@@ -138,9 +138,11 @@ function GrantForm({ organizer, passes, onGranted }: GrantFormProps) {
 
 function OrganizerRow({ organizer, passes, onGranted }: GrantFormProps) {
   const [isGranting, setIsGranting] = useState(false);
-  const credits = passes
-    .map((pass) => `${organizer.unusedCredits.get(pass.id) ?? 0} ${pass.name}`)
-    .join(' · ');
+  const credits =
+    [...organizer.unusedCredits]
+      .filter(([, count]) => count > 0)
+      .map(([passId, count]) => `${count} × ${passes.find((p) => p.id === passId)?.name ?? passId}`)
+      .join(' · ') || 'none';
 
   return (
     <View style={styles.organizer}>

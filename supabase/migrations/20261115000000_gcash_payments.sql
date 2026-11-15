@@ -14,10 +14,6 @@ alter table public.passes
 update public.passes set gcash_price = 309.99 where id = 'party';
 update public.passes set gcash_price = 1859.99 where id = 'big_day';
 update public.passes set gcash_price = 6199.99 where id = 'unlimited';
--- The 36-shot plans have no web price of their own yet, so they match their tier.
-update public.passes set gcash_price = 309.99 where id = 'party_36';
-update public.passes set gcash_price = 1859.99 where id = 'big_day_36';
-update public.passes set gcash_price = 6199.99 where id = 'unlimited_36';
 
 ------------------------------------------------------------------------------
 -- One row per payment a host reports.

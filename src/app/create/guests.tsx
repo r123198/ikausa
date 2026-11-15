@@ -24,10 +24,13 @@ const FALLBACK_FREE_PASS: Pass = {
   id: FREE_PASS_ID,
   name: 'Free',
   maxParticipants: 5,
-  maxShotsPerPerson: 36,
+  maxShotsPerPerson: 25,
   productId: null,
   displayPrice: null,
+  isActive: true,
 };
+
+const ADD_ON_NOTE = 'Every plan includes up to 25 shots each. Unlimited shots add ₱699.';
 
 /** The web can't use the stores, so paid plans are paid with GCash there. */
 const usesGcash = !canPurchase && canPayWithGcash;
@@ -39,7 +42,8 @@ async function loadGcash(): Promise<{ gcashPrices: Map<string, number>; pending:
 }
 
 async function loadPlans() {
-  const [passes, credits, gcash] = await Promise.all([fetchPasses(), fetchCredits(), loadGcash()]);
+  const [allPasses, credits, gcash] = await Promise.all([fetchPasses(), fetchCredits(), loadGcash()]);
+  const passes = allPasses.filter((p) => p.isActive);
   const prices = await fetchStorePrices(passes.flatMap((p) => (p.productId ? [p.productId] : [])));
   return { passes, credits, prices, ...gcash };
 }
@@ -233,6 +237,7 @@ export default function GuestsStep() {
         notice ??
         (needsPurchase && !canPayHere ? 'Paid plans can be bought in the iOS or Android app.' : null)
       }
+      footerNoteTone={!error && notice ? 'info' : 'error'}
       onNext={handleNext}>
       <View style={styles.planHeader}>
         <Text style={styles.planTitle}>
@@ -260,7 +265,7 @@ export default function GuestsStep() {
           );
         })}
       </View>
-      <Text style={styles.planName}>{pass.name} plan · {passSummary(pass)}</Text>
+      <Text style={styles.planName}>{passSummary(pass)}</Text>
 
       <View style={styles.rule} />
 
@@ -290,6 +295,7 @@ export default function GuestsStep() {
           );
         })}
       </View>
+      <Text style={styles.addOnNote}>{ADD_ON_NOTE}</Text>
 
       <View style={styles.rule} />
 
@@ -411,6 +417,7 @@ const styles = StyleSheet.create({
   shotBoxActive: { borderColor: C.primary, backgroundColor: 'rgba(255,196,153,0.1)' },
   shotText: { ...T.bodyMd, fontSize: 16 },
   shotTextActive: { color: C.primary, fontWeight: '700' },
+  addOnNote: { ...T.caption, fontSize: 13, marginTop: -10 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   toggleText: { ...T.bodyMd, fontSize: 15, color: C.textSoft, flex: 1 },
 });

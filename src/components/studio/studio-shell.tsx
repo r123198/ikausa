@@ -1,12 +1,22 @@
 import { Link, usePathname, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Logo } from '@/components/logo';
 import { useStudio } from '@/components/studio/studio-context';
 import { C, Fonts, T } from '@/constants/theme';
 
 const CONTENT_MAX_WIDTH = 1080;
+/** Below this width (phones) Studio uses tighter gutters and a smaller title. */
+const COMPACT_BREAKPOINT = 640;
+const GUTTER = 24;
+const COMPACT_GUTTER = 16;
+
+/** Width of the content column for a window width, so pages can size grids to it. */
+export function studioContentWidth(windowWidth: number): number {
+  const gutter = windowWidth < COMPACT_BREAKPOINT ? COMPACT_GUTTER : GUTTER;
+  return Math.min(windowWidth - gutter * 2, CONTENT_MAX_WIDTH);
+}
 
 interface StudioShellProps {
   eyebrow?: string;
@@ -36,10 +46,11 @@ function NavLink({ href, label }: { href: Href; label: string }) {
 /** Desktop-first frame for Studio pages: top bar, then a centred content column. */
 export function StudioShell({ eyebrow, title, subtitle, actions, children }: StudioShellProps) {
   const { status } = useStudio();
+  const isCompact = useWindowDimensions().width < COMPACT_BREAKPOINT;
 
   return (
     <View style={styles.root}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, isCompact && styles.topBarCompact]}>
         <View style={styles.topInner}>
           <Link href="/studio" asChild>
             <Pressable accessibilityRole="link" accessibilityLabel="Studio home" style={styles.brand}>
@@ -57,12 +68,12 @@ export function StudioShell({ eyebrow, title, subtitle, actions, children }: Stu
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, isCompact && styles.scrollCompact]}>
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.headerText}>
               {eyebrow && <Text style={T.eyebrow}>{eyebrow}</Text>}
-              <Text style={styles.title} accessibilityRole="header">
+              <Text style={[styles.title, isCompact && styles.titleCompact]} accessibilityRole="header">
                 {title}
               </Text>
               {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -95,8 +106,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.hairline,
     backgroundColor: C.surfaceLowest,
-    paddingHorizontal: 24,
+    paddingHorizontal: GUTTER,
   },
+  topBarCompact: { paddingHorizontal: COMPACT_GUTTER },
   topInner: {
     width: '100%',
     maxWidth: CONTENT_MAX_WIDTH,
@@ -110,14 +122,15 @@ const styles = StyleSheet.create({
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandText: { fontFamily: Fonts.playfair, fontSize: 20, color: C.onSurface },
-  brandStudio: { fontFamily: Fonts.playfairItalic, color: C.primary },
+  brandStudio: { color: C.primary },
   nav: { flexDirection: 'row', gap: 4 },
   navLink: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   navLinkActive: { backgroundColor: C.surfaceHigh },
   navText: { ...T.caption, fontSize: 14, fontWeight: '600', color: C.textSoft },
   navTextActive: { color: C.onSurface },
 
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 80 },
+  scroll: { flexGrow: 1, paddingHorizontal: GUTTER, paddingTop: 40, paddingBottom: 80 },
+  scrollCompact: { paddingHorizontal: COMPACT_GUTTER, paddingTop: 24 },
   content: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center', gap: 28 },
   header: {
     flexDirection: 'row',
@@ -128,6 +141,7 @@ const styles = StyleSheet.create({
   },
   headerText: { gap: 8, flexShrink: 1 },
   title: { ...T.title, fontSize: 40, lineHeight: 48 },
+  titleCompact: { fontSize: 30, lineHeight: 36 },
   subtitle: { ...T.bodyMd, color: C.textSoft, maxWidth: 560 },
   actions: { flexDirection: 'row', gap: 10 },
 

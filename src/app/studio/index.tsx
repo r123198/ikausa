@@ -2,7 +2,7 @@ import { Link, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { CoverImage } from '@/components/cover-image';
-import { StudioPanel, StudioShell } from '@/components/studio/studio-shell';
+import { StudioPanel, StudioShell, studioContentWidth } from '@/components/studio/studio-shell';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
@@ -15,8 +15,6 @@ import { fetchCredits, fetchPasses } from '@/lib/passes';
 
 const MINUTE_MS = 60_000;
 const GRID_GAP = 16;
-const PAGE_GUTTER = 48;
-const MAX_CONTENT_WIDTH = 1080;
 
 const SECTIONS: { phase: EventPhase; title: string; hint: string }[] = [
   { phase: 'live', title: 'Live', hint: 'Guests can shoot right now.' },
@@ -81,7 +79,7 @@ export default function StudioDashboard() {
   const now = useNow(MINUTE_MS);
   const { data, error, isLoading, reload } = useFocusedAsync(loadDashboard, []);
 
-  const contentWidth = Math.min(width - PAGE_GUTTER, MAX_CONTENT_WIDTH);
+  const contentWidth = studioContentWidth(width);
   const columns = columnsFor(contentWidth);
   const cardWidth = (contentWidth - GRID_GAP * (columns - 1)) / columns;
 
@@ -89,22 +87,24 @@ export default function StudioDashboard() {
     if (!data && isLoading) return <LoadingState />;
     if (!data) return <ErrorState message={error ?? 'Unknown error'} onRetry={reload} />;
 
-    const paidPasses = data.passes.filter((p) => p.productId !== null);
+    // Only plans with credits left, so a plan never shows twice and empty ones don't crowd the page.
+    const held = data.passes.filter((p) => (data.credits.get(p.id) ?? 0) > 0);
     return (
       <>
-        <View style={styles.credits}>
-          {paidPasses.map((pass) => {
-            const count = data.credits.get(pass.id) ?? 0;
-            return (
-              <View key={pass.id} style={[styles.credit, count === 0 && styles.creditEmpty]}>
-                <Text style={styles.creditCount}>{count}</Text>
-                <Text style={styles.creditLabel}>{pass.name} credits</Text>
+        {held.length > 0 && (
+          <View style={styles.credits}>
+            {held.map((pass) => (
+              <View key={pass.id} style={styles.credit}>
+                <Text style={styles.creditCount}>{data.credits.get(pass.id)}</Text>
+                <Text style={styles.creditLabel}>{pass.name}</Text>
               </View>
-            );
-          })}
-        </View>
-        <Text style={styles.creditNote}>
-          Each paid event uses one credit. Need more? Contact the Ikausa team and we’ll top you up.
+            ))}
+          </View>
+        )}
+        <Text style={[styles.creditNote, held.length > 0 && styles.creditNoteTight]}>
+          {held.length > 0
+            ? 'Credits left. Each paid event uses one.'
+            : 'No credits yet. Pay for a plan when you create an event, or contact the Ikausa team to top up.'}
         </Text>
 
         {data.events.length === 0 ? (
@@ -161,15 +161,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,196,153,0.35)',
     gap: 2,
   },
-  creditEmpty: { borderColor: C.hairline, opacity: 0.6 },
-  creditCount: { ...T.italic, fontSize: 30, lineHeight: 36, color: C.primary },
+  creditCount: { ...T.figure, fontSize: 28, lineHeight: 34, color: C.primary },
   creditLabel: { ...T.caption, fontSize: 13, color: C.textSoft },
-  creditNote: { ...T.caption, fontSize: 13, marginTop: -16 },
+  creditNote: { ...T.caption, fontSize: 13 },
+  creditNoteTight: { marginTop: -16 },
 
   section: { gap: 14 },
   sectionHead: { gap: 2 },
   sectionTitle: { ...T.title, fontSize: 26, lineHeight: 32 },
-  sectionCount: { ...T.italic, fontSize: 20, color: C.textMuted },
+  sectionCount: { ...T.figure, fontSize: 18, color: C.textMuted },
   sectionHint: { ...T.caption, fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
 

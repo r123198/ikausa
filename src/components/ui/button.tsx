@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.outlineVariant },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
-  label: { ...T.bodyMd, fontWeight: '700' },
-  smallLabel: { fontSize: 14, lineHeight: 18, fontWeight: '600' },
+  label: { ...T.bodyMd, fontWeight: '600' },
+  smallLabel: { fontSize: 14, lineHeight: 18, fontWeight: '500' },
 });

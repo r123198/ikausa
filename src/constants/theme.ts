@@ -123,6 +123,15 @@ export const T = {
     fontWeight: '400' as const,
     color: C.onSurface,
   },
+  /** Plain figures for work screens (Studio): counts, codes, amounts. */
+  figure: {
+    fontFamily: 'HankenGrotesk',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600' as const,
+    fontVariant: ['tabular-nums'] as ['tabular-nums'],
+    color: C.onSurface,
+  },
   /** Italic serif for numbers, counters and names on photos. */
   italic: {
     fontFamily: 'PlayfairDisplay-Italic',

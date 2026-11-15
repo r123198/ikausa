@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     borderColor: C.hairline,
     gap: 4,
   },
-  statValue: { ...T.italic, fontSize: 22, color: C.onSurface },
+  statValue: { ...T.figure },
   statLabel: { ...T.eyebrow },
 
   columns: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
@@ -253,5 +253,5 @@ const styles = StyleSheet.create({
   qrWrap: { padding: 10, borderRadius: 14, backgroundColor: C.white },
   qrText: { gap: 6 },
   codeLabel: { ...T.eyebrow },
-  code: { ...T.italic, fontSize: 30, lineHeight: 36, color: C.primary, letterSpacing: 2 },
+  code: { ...T.figure, fontSize: 28, lineHeight: 34, color: C.primary, letterSpacing: 3 },
 });

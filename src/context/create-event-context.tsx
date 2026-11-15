@@ -12,14 +12,16 @@ export interface ShotOption {
   value: number | 'unlimited';
 }
 
+/** Every plan allows up to 25 shots each; unlimited is a paid add-on. */
 export const SHOT_OPTIONS: ShotOption[] = [
   { id: '5', value: 5 },
   { id: '10', value: 10 },
-  { id: '16', value: 16 },
-  { id: '24', value: 24 },
-  { id: '36', value: 36 },
+  { id: '15', value: 15 },
+  { id: '20', value: 20 },
+  { id: '25', value: 25 },
   { id: 'unlimited', value: 'unlimited' },
 ];
+const DEFAULT_SHOT_OPTION = SHOT_OPTIONS[4];
 
 export type { RevealOption };
 
@@ -73,7 +75,7 @@ const defaultEventState: CreateEventState = {
   finishTime: { hour: '11', minute: '59', period: 'PM' },
   revealOption: 'during',
   passId: FREE_PASS_ID,
-  shotOptionId: '24',
+  shotOptionId: DEFAULT_SHOT_OPTION.id,
   everyoneCanSee: true,
   cameraId: DEFAULT_FILM_ID,
   exportDays: 30,
@@ -177,7 +179,7 @@ export function useCreateEvent(): CreateEventContextType {
   }, [state.finishDate, state.finishTime]);
 
   const selectedShot = useMemo(
-    () => SHOT_OPTIONS.find((s) => s.id === state.shotOptionId) || SHOT_OPTIONS[3],
+    () => SHOT_OPTIONS.find((s) => s.id === state.shotOptionId) || DEFAULT_SHOT_OPTION,
     [state.shotOptionId]
   );
 

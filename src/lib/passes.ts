@@ -8,12 +8,15 @@ export interface Pass {
   /** Store product sold through RevenueCat; null for the free pass. */
   productId: string | null;
   displayPrice: string | null;
+  /** Retired passes can still be spent by hosts holding a credit, but aren't sold. */
+  isActive: boolean;
 }
 
+/** All passes, retired ones included; filter on `isActive` for what's on sale. */
 export async function fetchPasses(): Promise<Pass[]> {
   const { data, error } = await supabase
     .from('passes')
-    .select('id, name, max_participants, max_shots_per_person, revenuecat_product_id, display_price')
+    .select('id, name, max_participants, max_shots_per_person, revenuecat_product_id, display_price, is_active')
     .order('sort');
   if (error) throw error;
   return data.map((p) => ({
@@ -23,6 +26,7 @@ export async function fetchPasses(): Promise<Pass[]> {
     maxShotsPerPerson: p.max_shots_per_person,
     productId: p.revenuecat_product_id,
     displayPrice: p.display_price,
+    isActive: p.is_active,
   }));
 }
 

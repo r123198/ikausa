@@ -536,6 +536,116 @@ a { color: inherit; }
 .occasions__list em { color: var(--color-primary); }
 .occasions__tag { margin-top: 1.5rem; color: var(--color-text-soft); font-size: var(--text-lede); }
 
+/* ---------- Pricing: a photo-lab price board ---------- */
+
+.pricing {
+  display: grid;
+  gap: clamp(2.5rem, 2rem + 3vw, 4rem);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: calc(var(--space-section) * 0.6) var(--gutter) var(--space-section);
+}
+.pricing .section-head { margin-bottom: 1.75rem; }
+.pricing__intro { align-self: start; }
+.pricing__notes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.75rem;
+  display: grid;
+  gap: 0.6rem;
+  color: var(--color-text-soft);
+}
+.pricing__notes li { padding-left: 1.4rem; position: relative; }
+.pricing__notes li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-accent);
+}
+.pricing__addon {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 22rem;
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px dashed rgba(244, 162, 97, 0.5);
+  border-radius: var(--radius-frame);
+  background: rgba(244, 162, 97, 0.06);
+}
+.pricing__addon span { color: var(--color-text-warm); }
+.pricing__addon b { font-family: var(--font-stamp); color: var(--color-primary); }
+
+.price-board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-night-line);
+}
+.price-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1.1rem 0.25rem;
+  border-bottom: 1px solid var(--color-night-line);
+  transition: background-color var(--duration-fast) ease;
+}
+.price-row:hover { background: rgba(255, 255, 255, 0.03); }
+.price-row__people {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.price-row__people small {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-soft);
+}
+.price-row__hint {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+  color: var(--color-text-soft);
+  font-size: 0.9375rem;
+}
+/* Dotted leader between the hint and the price, like a printed price list. */
+.price-row__hint::after {
+  content: '';
+  flex: 1;
+  min-width: 1.5rem;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.22);
+  transform: translateY(-0.25em);
+}
+.price-row__price {
+  font-family: var(--font-stamp);
+  font-size: 1.125rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.price-row--free .price-row__price { color: var(--color-primary); }
+
+@media (max-width: 479px) {
+  .price-row { grid-template-columns: 4.25rem 1fr auto; gap: 0.75rem; }
+  .price-row__people { font-size: 1.5rem; }
+  .price-row__hint { font-size: 0.875rem; }
+  .price-row__hint::after { display: none; }
+}
+
+@media (min-width: 960px) {
+  .pricing { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(3rem, 6vw, 6rem); }
+  .pricing__intro { position: sticky; top: 6rem; }
+}
+
 /* ---------- FAQ ---------- */
 
 .faq {

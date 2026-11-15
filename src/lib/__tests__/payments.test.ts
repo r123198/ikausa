@@ -57,8 +57,12 @@ describe('decidePayment', () => {
 });
 
 describe('formatPeso', () => {
-  test('formats with thousands separators and centavos', () => {
-    expect(formatPeso(1859.99)).toBe('₱1,859.99');
-    expect(formatPeso(309.99)).toBe('₱309.99');
+  test('drops centavos for whole pesos', () => {
+    expect(formatPeso(1899)).toBe('₱1,899');
+    expect(formatPeso(119)).toBe('₱119');
+  });
+
+  test('keeps centavos otherwise', () => {
+    expect(formatPeso(309.5)).toBe('₱309.50');
   });
 });
