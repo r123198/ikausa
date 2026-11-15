@@ -125,12 +125,14 @@ interface AlbumRowProps {
   userId: string;
   urls: Map<string, string>;
   stripWidth: number;
+  now: Date;
 }
 
-function AlbumRow({ event, userId, urls, stripWidth }: AlbumRowProps) {
+function AlbumRow({ event, userId, urls, stripWidth, now }: AlbumRowProps) {
   const router = useRouter();
-  const isDeveloping = eventPhase(event) === 'developing';
-  const previews = event.previewPaths.flatMap((p) => {
+  const isDeveloping = eventPhase(event, now) === 'developing';
+  // Before the reveal, previewPaths still holds the caller's own shots; keep them hidden.
+  const previews = isDeveloping ? [] : event.previewPaths.flatMap((p) => {
     const url = urls.get(p);
     return url ? [url] : [];
   });
@@ -259,6 +261,7 @@ export default function HomeScreen() {
               userId={userId}
               urls={data.previewUrls}
               stripWidth={contentWidth}
+              now={now}
             />
           ))
         )}

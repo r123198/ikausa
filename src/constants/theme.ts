@@ -30,6 +30,8 @@ export const C = {
   card: '#1a1a1c',
   cardRaised: '#232326',
   hairline: 'rgba(255,255,255,0.09)',
+  /** Border for the one highlighted card or panel on a page. */
+  primaryBorder: 'rgba(255,196,153,0.45)',
   textMuted: '#8d8d92',
   textSoft: '#b9b9be',
   white: '#ffffff',

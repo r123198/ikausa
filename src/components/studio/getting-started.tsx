@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.hairline,
   },
-  stepCurrent: { backgroundColor: C.cardRaised, borderColor: 'rgba(255,196,153,0.45)' },
+  stepCurrent: { backgroundColor: C.cardRaised, borderColor: C.primaryBorder },
   badge: {
     width: 28,
     height: 28,

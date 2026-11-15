@@ -30,7 +30,7 @@ export interface AdminPaymentRequest extends PaymentRequest {
 }
 
 const ERRORS: Record<string, string> = {
-  invalid_reference: 'Enter the reference number from your GCash or Maya receipt. It’s numbers only.',
+  invalid_reference: 'Enter the reference number from your GCash or Maya receipt.',
   not_sold_on_web: 'This plan can’t be bought on the web yet.',
   too_many_pending: 'You already have payments waiting. We’ll confirm them shortly.',
   reference_used: 'That reference number was already submitted.',
@@ -45,15 +45,18 @@ function paymentError(error: { message: string }): Error {
   return new Error(code ? ERRORS[code] : error.message);
 }
 
-/** Strips spaces and dashes the way the database does. Null unless it's 6–30 digits. */
+/**
+ * Strips spaces and dashes and uppercases, the way the database does.
+ * Null unless it's 6–30 letters or digits (GCash uses digits; Maya may use letters).
+ */
 export function normalizeReference(input: string): string | null {
-  const ref = input.replace(/[\s-]/g, '');
-  return /^[0-9]{6,30}$/.test(ref) ? ref : null;
+  const ref = input.replace(/[\s-]/g, '').toUpperCase();
+  return /^[A-Z0-9]{6,30}$/.test(ref) ? ref : null;
 }
 
-/** Keeps only what a reference can contain while the host types: digits and spaces. */
+/** Keeps only what a reference can contain while the host types: letters, digits, spaces, dashes. */
 export function filterReferenceInput(input: string): string {
-  return input.replace(/[^0-9 ]/g, '');
+  return input.replace(/[^A-Za-z0-9 -]/g, '');
 }
 
 /** ₱1,899 for whole pesos, ₱309.50 otherwise. */

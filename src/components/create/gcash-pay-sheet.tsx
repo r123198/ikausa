@@ -134,8 +134,7 @@ export function GcashPaySheet({
         placeholder="e.g. 1023 456 789012"
         value={reference}
         onChangeText={(text) => setReference(filterReferenceInput(text))}
-        keyboardType="number-pad"
-        inputMode="numeric"
+        autoCapitalize="characters"
         autoCorrect={false}
         maxLength={40}
       />

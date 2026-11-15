@@ -19,9 +19,9 @@ describe('normalizeReference', () => {
     expect(normalizeReference('1023-456-789012')).toBe('1023456789012');
   });
 
-  test('rejects references with letters', () => {
-    expect(normalizeReference('ab12cd34ef')).toBeNull();
-    expect(normalizeReference('ghfhgfhg')).toBeNull();
+  test('uppercases letters in a Maya reference', () => {
+    expect(normalizeReference('ab12cd34ef')).toBe('AB12CD34EF');
+    expect(normalizeReference('ab12-cd34 ef')).toBe('AB12CD34EF');
   });
 
   test('rejects references that are too short or contain symbols', () => {
@@ -32,8 +32,8 @@ describe('normalizeReference', () => {
 });
 
 describe('filterReferenceInput', () => {
-  test('drops letters and symbols but keeps digits and spaces', () => {
-    expect(filterReferenceInput('10a23 456-78#9')).toBe('1023 456789');
+  test('keeps letters, digits, spaces and dashes but drops other symbols', () => {
+    expect(filterReferenceInput('10a23 456-78#9/.')).toBe('10a23 456-789');
   });
 });
 

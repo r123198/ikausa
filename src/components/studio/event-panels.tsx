@@ -135,7 +135,7 @@ export function ClientPanel({ savedName, isSaving, onSave }: ClientPanelProps) {
         value={name}
         maxLength={MAX_CLIENT_NAME_LENGTH}
         onChangeText={setDraft}
-        onSubmitEditing={() => isChanged && save()}
+        onSubmitEditing={() => isChanged && !isSaving && save()}
       />
       <Button
         label="Save"

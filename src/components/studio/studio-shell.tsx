@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   panelFeatured: {
     padding: 28,
     backgroundColor: C.cardRaised,
-    borderColor: 'rgba(255,196,153,0.45)',
+    borderColor: C.primaryBorder,
   },
   panelHead: { gap: 4 },
   panelEyebrowFeatured: { color: C.primary },

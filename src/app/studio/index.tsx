@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     transitionProperty: 'transform, border-color',
     transitionDuration: '150ms',
   },
-  cardHovered: { borderColor: 'rgba(255,196,153,0.45)', transform: [{ translateY: -2 }] },
+  cardHovered: { borderColor: C.primaryBorder, transform: [{ translateY: -2 }] },
   cardPressed: { transform: [{ scale: 0.99 }] },
   cardCover: { width: '100%', height: 150 },
   cardBody: { padding: 18, gap: 4 },
