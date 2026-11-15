@@ -4,6 +4,7 @@ const FILM_DESCRIPTIONS = {
   disposable: 'Warm, punchy colour with green-tinted shadows and grain, like a drugstore film camera.',
   polaroid: 'Soft, faded instant-film tones with creamy highlights and cool shadows.',
   pinhole: 'Moody, muted colour with deep contrast and a heavy dreamy vignette.',
+  digicam: 'Bright, crisp point-and-shoot colour with cool tones and a flash-lit pop, like a 2000s digital camera.',
 };
 
 const TOUR_STEP_MS = 3800;

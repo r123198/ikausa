@@ -89,7 +89,7 @@ export default function PrintKitScreen() {
         <View style={styles.sheet} nativeID="print-sheet-poster">
           <CoverImage cover={event.cover} style={styles.posterCover} />
           <View style={styles.posterBody}>
-            <Text style={styles.posterEyebrow}>Everyone shoots. Nobody peeks.</Text>
+            <Text style={styles.posterEyebrow}>See the day the way everyone saw it.</Text>
             <Text style={styles.posterTitle} numberOfLines={2}>
               {event.name}
             </Text>

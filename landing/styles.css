@@ -236,6 +236,8 @@ a { color: inherit; }
 .hero h1 > span,
 .hero h1 em { display: block; }
 .hero h1 em { font-style: italic; }
+/* Narrow screens wrap each line evenly instead of leaving one word behind. */
+.hero h1 span { text-wrap: balance; }
 .hero .actions { justify-content: center; }
 
 /* The phone walks through a guest's night; steps beside it say what's on screen. */

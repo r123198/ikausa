@@ -41,13 +41,13 @@ const SLIDES: Slide[] = [
     key: 'film',
     art: (scale) => <FilmsArt scale={scale} />,
     title: 'Shoot on\nreal film.',
-    body: 'Pick a look for the whole roll: Disposable, Polaroid, Pinhole or clean Original. Every shot develops the same way.',
+    body: 'Pick a look for the whole roll: Disposable, Polaroid, Pinhole, Digicam or clean Original. Every shot develops the same way.',
   },
   {
     key: 'reveal',
     art: (scale) => <RevealArt scale={scale} />,
-    title: 'Nobody peeks\nuntil the end.',
-    body: 'Shots stay hidden while the roll runs. When it ends, everything develops at once and everyone gets the album to keep.',
+    title: 'The way\neveryone saw it.',
+    body: 'The host picks when photos develop: right away, when the roll closes, or a day later. Then everyone gets the whole album to keep.',
   },
 ];
 

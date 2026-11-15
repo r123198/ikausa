@@ -26,6 +26,11 @@ const luminance = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 /** Parametric film grade. Pure function of an input colour in 0..1. */
 function grade([r, g, b], p) {
+  // Exposure: >0 brightens and lets highlights clip, like an on-camera flash. Optional.
+  const gain = 1 + (p.exposure ?? 0);
+  r *= gain;
+  g *= gain;
+  b *= gain;
   // White balance
   r *= 1 + p.warmth * 0.08;
   b *= 1 - p.warmth * 0.08;
