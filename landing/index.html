@@ -389,56 +389,77 @@
     </section>
 
     <section class="pricing" id="pricing" aria-labelledby="pricing-heading">
-      <div class="pricing__intro">
-        <div class="section-head">
-          <p class="eyebrow">Pricing</p>
-          <h2 id="pricing-heading">Pay once per event. <em>Not per month.</em></h2>
-        </div>
-        <ul class="pricing__notes">
-          <li>Priced by how many people join the roll, you included.</li>
-          <li>Every plan includes 25 shots per person.</li>
-          <li>Pay with GCash or Maya. No card needed.</li>
-        </ul>
-        <p class="pricing__addon"><span>Unlimited shots</span><b>+₱699</b></p>
-        <a class="button" href="https://ikausa.vercel.app/sign-in">Start a roll</a>
+      <div class="section-head pricing__head">
+        <p class="eyebrow">Pricing</p>
+        <h2 id="pricing-heading">Pay once per event. <em>Not per month.</em></h2>
+        <p class="pricing__lede">
+          Your price depends on how many people join the roll, you included.
+          Pay with GCash or Maya. No card, no subscription.
+        </p>
       </div>
-      <ol class="price-board" aria-label="Price by number of people">
-          <li class="price-row price-row--free">
-            <span class="price-row__people">5<small>people</small></span>
-            <span class="price-row__hint">Try it with your closest few</span>
-            <span class="price-row__price">Free</span>
-          </li>
-          <li class="price-row">
-            <span class="price-row__people">10<small>people</small></span>
-            <span class="price-row__hint">Small dinners and get-togethers</span>
-            <span class="price-row__price">₱119</span>
-          </li>
-          <li class="price-row">
-            <span class="price-row__people">25<small>people</small></span>
-            <span class="price-row__hint">Birthdays and barkada trips</span>
-            <span class="price-row__price">₱309</span>
-          </li>
-          <li class="price-row">
-            <span class="price-row__people">50<small>people</small></span>
-            <span class="price-row__hint">Debuts and office parties</span>
-            <span class="price-row__price">₱949</span>
-          </li>
-          <li class="price-row">
-            <span class="price-row__people">100<small>people</small></span>
-            <span class="price-row__hint">Weddings</span>
-            <span class="price-row__price">₱1,899</span>
-          </li>
-          <li class="price-row">
-            <span class="price-row__people">150<small>people</small></span>
-            <span class="price-row__hint">Big weddings and reunions</span>
-            <span class="price-row__price">₱3,179</span>
-          </li>
-          <li class="price-row">
-            <span class="price-row__people">200<small>people</small></span>
-            <span class="price-row__hint">Company events</span>
-            <span class="price-row__price">₱4,449</span>
-          </li>
-      </ol>
+
+      <form class="plan-picker" data-plan-picker>
+        <div class="plan-picker__summary">
+          <p class="plan-picker__people">Up to <span data-plan-people>5</span> people</p>
+          <p class="plan-picker__price" data-plan-price aria-live="polite">Free</p>
+        </div>
+
+        <fieldset class="plan-picker__options" data-plan-options>
+          <legend class="visually-hidden">How many people will join the roll?</legend>
+          <span class="plan-picker__indicator" aria-hidden="true"></span>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="5" data-price="0" checked>
+            <span>5</span>
+          </label>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="10" data-price="119">
+            <span>10</span>
+          </label>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="25" data-price="309">
+            <span>25</span>
+          </label>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="50" data-price="949">
+            <span>50</span>
+          </label>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="100" data-price="1899">
+            <span>100</span>
+          </label>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="150" data-price="3179">
+            <span>150</span>
+          </label>
+          <label class="plan-picker__option">
+            <input type="radio" name="people" value="200" data-price="4449">
+            <span>200</span>
+          </label>
+        </fieldset>
+
+        <div class="plan-picker__included">
+          <p class="eyebrow">Included</p>
+          <ul>
+            <li>Up to <span data-plan-people>5</span> people on the roll</li>
+            <li data-plan-shots>25 shots per person</li>
+            <li>Photos stay hidden until your reveal</li>
+            <li>All four film looks</li>
+            <li>Downloads open for up to 90 days</li>
+          </ul>
+        </div>
+
+        <div class="plan-picker__upgrade">
+          <p class="eyebrow">Upgrade your roll</p>
+          <label class="addon-row">
+            <input type="checkbox" name="unlimited" data-addon-price="699">
+            <span class="addon-row__name">Unlimited shots</span>
+            <span class="addon-row__price">+₱699</span>
+            <span class="addon-row__toggle" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <a class="button plan-picker__cta" href="https://ikausa.vercel.app/sign-in">Start a roll</a>
+      </form>
     </section>
 
     <section class="faq" id="faq" aria-labelledby="faq-heading">

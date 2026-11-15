@@ -38,6 +38,7 @@ const ERRORS: Record<string, string> = {
   payment_not_found: 'That payment no longer exists.',
   payment_already_decided: 'That payment was already handled.',
   not_authenticated: 'Sign in first.',
+  account_required: 'Only the account that creates the roll can pay. Sign in or create an account first.',
 };
 
 function paymentError(error: { message: string }): Error {

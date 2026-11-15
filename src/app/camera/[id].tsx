@@ -10,7 +10,6 @@ import { FilmCounter } from '@/components/film-counter';
 import { Icon } from '@/components/icon';
 import { InviteSheet } from '@/components/invite-sheet';
 import { PhotoViewer } from '@/components/photo-viewer';
-import { ShotPackSheet } from '@/components/shot-pack-sheet';
 import { Button } from '@/components/ui/button';
 import { ZoomPills } from '@/components/zoom-pills';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
@@ -43,7 +42,6 @@ export default function CameraScreen() {
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [isShotPackOpen, setIsShotPackOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   /** Shots taken this session, shown instantly before the server list catches up. */
   const [justTaken, setJustTaken] = useState<LocalShot[]>([]);
@@ -68,7 +66,6 @@ export default function CameraScreen() {
   const left = shotsLeft(event);
   const isLive = eventPhase(event, now) === 'live';
   const canShoot = isLive && left !== 0 && isReady && !isSaving;
-  const canGetMoreShots = isLive && left === 0;
   const serverPaths = new Set(data.myPhotos.map((p) => p.path));
   const recent = [
     ...justTaken.filter((shot) => !shot.path || !serverPaths.has(shot.path)).map((shot) => shot.uri),
@@ -177,9 +174,6 @@ export default function CameraScreen() {
               <Text style={styles.status} accessibilityLiveRegion="polite">
                 {blockedMessage ?? status}
               </Text>
-              {canGetMoreShots && (
-                <Button label="Get more shots" size="sm" onPress={() => setIsShotPackOpen(true)} />
-              )}
             </View>
           )}
           <View style={styles.viewfinderControls} pointerEvents="box-none">
@@ -263,17 +257,6 @@ export default function CameraScreen() {
         eventName={event.name}
         inviteCode={event.inviteCode}
       />
-      {isShotPackOpen && (
-        <ShotPackSheet
-          eventId={event.id}
-          onClose={() => setIsShotPackOpen(false)}
-          onDone={() => {
-            setIsShotPackOpen(false);
-            setStatus(null);
-            reload();
-          }}
-        />
-      )}
       {viewerIndex !== null && (
         <PhotoViewer urls={recent} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
       )}

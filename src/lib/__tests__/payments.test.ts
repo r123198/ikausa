@@ -59,6 +59,12 @@ describe('submitPayment', () => {
 
     await expect(submitPayment('party', '1023456789012')).rejects.toThrow('already submitted');
   });
+
+  test('tells a guest they need an account to pay', async () => {
+    rpc.mockResolvedValue({ error: { message: 'account_required' } });
+
+    await expect(submitPayment('party', '1023456789012')).rejects.toThrow('Only the account that creates the roll can pay');
+  });
 });
 
 describe('decidePayment', () => {

@@ -81,7 +81,68 @@ function setUpTour() {
   }, { threshold: 0.4 }).observe(tour);
 }
 
+// Pricing: pick how many people, optionally add unlimited shots, and the price follows.
+// Prices mirror the passes in supabase/migrations/20261115000001_participant_pricing.sql.
+const PRICE_ROLL_MS = 320;
+const pesoFormat = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 0 });
+
+function formatPlanPrice(amount) {
+  return amount === 0 ? 'Free' : `₱${pesoFormat.format(amount)}`;
+}
+
+function setUpPlanPicker() {
+  const picker = document.querySelector('[data-plan-picker]');
+  if (!picker) return;
+  const options = picker.querySelector('[data-plan-options]');
+  const indicator = options.querySelector('.plan-picker__indicator');
+  const radios = options.querySelectorAll('input[type="radio"]');
+  const addon = picker.querySelector('[data-addon-price]');
+  const price = picker.querySelector('[data-plan-price]');
+  const peopleLabels = picker.querySelectorAll('[data-plan-people]');
+  const shots = picker.querySelector('[data-plan-shots]');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function chosen() {
+    return options.querySelector('input[type="radio"]:checked');
+  }
+
+  function moveIndicator() {
+    const target = chosen().nextElementSibling;
+    indicator.style.width = `${target.offsetWidth}px`;
+    indicator.style.transform = `translateX(${target.offsetLeft + target.parentElement.offsetLeft}px)`;
+  }
+
+  function update() {
+    const radio = chosen();
+    const total = Number(radio.dataset.price) + (addon.checked ? Number(addon.dataset.addonPrice) : 0);
+    const text = formatPlanPrice(total);
+
+    peopleLabels.forEach((label) => { label.textContent = radio.value; });
+    shots.textContent = addon.checked ? 'Unlimited shots per person' : '25 shots per person';
+    moveIndicator();
+
+    if (price.textContent === text) return;
+    price.textContent = text;
+    if (!prefersReducedMotion) {
+      price.animate(
+        [{ opacity: 0, transform: 'translateY(0.4em)' }, { opacity: 1, transform: 'translateY(0)' }],
+        { duration: PRICE_ROLL_MS, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+      );
+    }
+  }
+
+  options.classList.add('is-enhanced');
+  radios.forEach((radio) => radio.addEventListener('change', update));
+  addon.addEventListener('change', update);
+  new ResizeObserver(moveIndicator).observe(options);
+
+  // Place the frame first, then let it slide on later changes.
+  update();
+  requestAnimationFrame(() => options.classList.add('is-ready'));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setUpFilmPicker();
   setUpTour();
+  setUpPlanPicker();
 });

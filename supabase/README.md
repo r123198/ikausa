@@ -73,7 +73,7 @@ In **Integrations → Cron → Create job**, run every hour:
 
 It deletes photos 7 days after a roll's export window closes, and uploads that were reserved but never finished.
 
-## 4. RevenueCat (paid passes and shot packs)
+## 4. RevenueCat (paid passes)
 
 1. In App Store Connect and Google Play Console, create these **consumable** in-app products:
    - Roll plans (guests × shots per person):
@@ -86,8 +86,6 @@ It deletes photos 7 days after a roll's export window closes, and uploads that w
      | `ikausa_pass_big_day` | 100 | unlimited |
      | `ikausa_pass_unlimited_36` | unlimited | 36 |
      | `ikausa_pass_unlimited` | unlimited | unlimited |
-
-   - Shot packs, bought by any member when they run out: `ikausa_shots_10`, `ikausa_shots_24`.
 
    Ids must match `passes.revenuecat_product_id` / `shot_packs.revenuecat_product_id`; edit the tables
    to change the catalog. Keep `passes.sort` in price order: the app picks the first plan that covers
@@ -110,9 +108,14 @@ Purchases need a development build (`npx expo run:ios` / `run:android`); Expo Go
 3. The app waits for that credit, then creates the roll. The database spends the credit and enforces the plan's limits.
 4. A refund arrives as `CANCELLATION` and revokes the credit if it hasn't been used yet.
 
-### How a shot pack adds shots
+### Shot packs (retired)
 
-1. A member who is out of shots taps **Get more shots** on the camera and buys a pack.
+Shot packs are no longer sold: the app has no **Get more shots** button, and unlimited shots is
+bought for the whole roll when it's created. Remove `ikausa_shots_10` and `ikausa_shots_24` from
+the stores and RevenueCat. The tables, `apply_shot_pack` and the webhook's shot pack handling stay
+so past purchases keep counting and refunds still revoke them. How they worked:
+
+1. A member who was out of shots tapped **Get more shots** on the camera and bought a pack.
 2. The webhook adds a row to `shot_pack_credits`.
 3. The app calls `apply_shot_pack(event, pack)`, which ties the credit to that roll. The member's limit
    becomes the roll's shots per person plus their applied packs. A pack bought but not applied (for

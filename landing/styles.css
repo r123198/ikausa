@@ -536,114 +536,187 @@ a { color: inherit; }
 .occasions__list em { color: var(--color-primary); }
 .occasions__tag { margin-top: 1.5rem; color: var(--color-text-soft); font-size: var(--text-lede); }
 
-/* ---------- Pricing: a photo-lab price board ---------- */
+/* ---------- Pricing: pick how many people, see the price ---------- */
 
 .pricing {
-  display: grid;
-  gap: clamp(2.5rem, 2rem + 3vw, 4rem);
-  max-width: var(--max-width);
+  max-width: 50rem;
   margin: 0 auto;
   padding: calc(var(--space-section) * 0.6) var(--gutter) var(--space-section);
 }
-.pricing .section-head { margin-bottom: 1.75rem; }
-.pricing__intro { align-self: start; }
-.pricing__notes {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1.75rem;
-  display: grid;
-  gap: 0.6rem;
-  color: var(--color-text-soft);
+.pricing__head {
+  justify-items: center;
+  text-align: center;
+  margin-inline: auto;
+  margin-bottom: clamp(2.5rem, 2rem + 2vw, 3.5rem);
 }
-.pricing__notes li { padding-left: 1.4rem; position: relative; }
-.pricing__notes li::before {
+.pricing__head h2 em { display: block; }
+.pricing__lede { max-width: 34rem; color: var(--color-text-soft); }
+
+.plan-picker { display: grid; }
+
+.plan-picker__summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.125rem);
+  line-height: 1.15;
+}
+.plan-picker__price {
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The people selector: a track of numbers with a frame that slides to the chosen one. */
+.plan-picker__options {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0.375rem;
+  border: 0;
+  border-radius: 1.1rem;
+  background: var(--color-night-raised);
+}
+.plan-picker__option { position: relative; z-index: 1; cursor: pointer; }
+.plan-picker__option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.plan-picker__option span {
+  display: grid;
+  place-items: center;
+  min-height: 3.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  font-family: var(--font-stamp);
+  font-size: 0.875rem;
+  color: var(--color-text-soft);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+}
+.plan-picker__option:hover span { color: var(--color-text); background: rgba(255, 255, 255, 0.04); }
+.plan-picker__option input:checked + span { color: var(--color-primary); }
+.plan-picker__option input:focus-visible + span {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+/* Without the script, the chosen number gets its own frame. */
+.plan-picker__options:not(.is-enhanced) .plan-picker__option input:checked + span {
+  border-color: rgba(255, 196, 153, 0.55);
+  background: rgba(255, 196, 153, 0.08);
+}
+.plan-picker__indicator {
+  display: none;
+  position: absolute;
+  top: 0.375rem;
+  left: 0;
+  height: 3.25rem;
+  border: 1px solid rgba(255, 196, 153, 0.55);
+  border-radius: 0.8rem;
+  background: rgba(255, 196, 153, 0.08);
+  box-shadow: 0 8px 24px -12px rgba(244, 162, 97, 0.6);
+  will-change: transform;
+}
+.plan-picker__options.is-enhanced .plan-picker__indicator { display: block; }
+.plan-picker__options.is-ready .plan-picker__indicator {
+  transition: transform 420ms var(--ease-out-expo);
+}
+
+.plan-picker__included {
+  display: grid;
+  gap: 1rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--color-night-line);
+}
+.plan-picker__included ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.6rem 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-soft);
+  font-size: 0.9375rem;
+}
+.plan-picker__included li { padding-left: 1.4rem; position: relative; }
+.plan-picker__included li::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.6em;
+  top: 0.55em;
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
   border: 1.5px solid var(--color-accent);
 }
-.pricing__addon {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  max-width: 22rem;
-  margin-bottom: 2rem;
-  padding: 1rem 1.25rem;
-  border: 1px dashed rgba(244, 162, 97, 0.5);
-  border-radius: var(--radius-frame);
-  background: rgba(244, 162, 97, 0.06);
-}
-.pricing__addon span { color: var(--color-text-warm); }
-.pricing__addon b { font-family: var(--font-stamp); color: var(--color-primary); }
 
-.price-board {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--color-night-line);
-}
-.price-row {
+.plan-picker__upgrade { display: grid; gap: 1rem; padding: 2rem 0; }
+.addon-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 5.5rem 1fr auto;
-  align-items: baseline;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
   gap: 1rem;
-  padding: 1.1rem 0.25rem;
-  border-bottom: 1px solid var(--color-night-line);
-  transition: background-color var(--duration-fast) ease;
+  padding: 1rem 1rem 1rem 1.5rem;
+  border: 1px solid var(--color-night-line);
+  border-radius: 1.1rem;
+  background: var(--color-night-raised);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background-color var(--duration-fast) ease;
 }
-.price-row:hover { background: rgba(255, 255, 255, 0.03); }
-.price-row__people {
+.addon-row:hover { border-color: rgba(255, 255, 255, 0.18); }
+.addon-row input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.addon-row__name {
   font-family: var(--font-display);
-  font-size: 1.75rem;
-  line-height: 1;
+  font-style: italic;
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem);
 }
-.price-row__people small {
-  display: block;
-  margin-top: 0.35rem;
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  color: var(--color-text-soft);
-}
-.price-row__hint {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  min-width: 0;
-  color: var(--color-text-soft);
-  font-size: 0.9375rem;
-}
-/* Dotted leader between the hint and the price, like a printed price list. */
-.price-row__hint::after {
-  content: '';
-  flex: 1;
-  min-width: 1.5rem;
-  border-bottom: 1px dotted rgba(255, 255, 255, 0.22);
-  transform: translateY(-0.25em);
-}
-.price-row__price {
+.addon-row__price {
   font-family: var(--font-stamp);
-  font-size: 1.125rem;
-  color: var(--color-text);
+  color: var(--color-text-warm);
   font-variant-numeric: tabular-nums;
 }
-.price-row--free .price-row__price { color: var(--color-primary); }
+.addon-row__toggle {
+  min-width: 5.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  text-align: center;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+.addon-row__toggle::before { content: 'Add +'; }
+.addon-row:has(input:checked) {
+  border-color: rgba(255, 196, 153, 0.55);
+  background: rgba(255, 196, 153, 0.06);
+}
+.addon-row input:checked ~ .addon-row__toggle { background: var(--color-primary); color: var(--color-on-primary); }
+.addon-row input:checked ~ .addon-row__toggle::before { content: 'Added ✓'; }
+.addon-row:has(input:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+
+.plan-picker__cta { justify-self: center; }
 
 @media (max-width: 479px) {
-  .price-row { grid-template-columns: 4.25rem 1fr auto; gap: 0.75rem; }
-  .price-row__people { font-size: 1.5rem; }
-  .price-row__hint { font-size: 0.875rem; }
-  .price-row__hint::after { display: none; }
+  .plan-picker__options { padding: 0.25rem; }
+  .plan-picker__indicator { top: 0.25rem; height: 2.75rem; }
+  .plan-picker__option span { min-height: 2.75rem; font-size: 0.8125rem; }
+  .addon-row { grid-template-columns: 1fr auto; padding-left: 1.1rem; }
+  .addon-row__price { grid-row: 2; grid-column: 1; }
+  .addon-row__toggle { grid-row: 1 / span 2; grid-column: 2; }
+  .plan-picker__cta { justify-self: stretch; }
 }
 
-@media (min-width: 960px) {
-  .pricing { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(3rem, 6vw, 6rem); }
-  .pricing__intro { position: sticky; top: 6rem; }
+@media (prefers-reduced-motion: reduce) {
+  .plan-picker__options.is-ready .plan-picker__indicator { transition: none; }
 }
 
 /* ---------- FAQ ---------- */
