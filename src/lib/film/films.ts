@@ -51,6 +51,14 @@ const ASSETS: Record<string, { lut: number | null; samples: number[] }> = {
       require('@/assets/films/pinhole-sample-3.jpg'),
     ],
   },
+  digicam: {
+    lut: require('@/assets/films/digicam-lut.png'),
+    samples: [
+      require('@/assets/films/digicam-sample-1.jpg'),
+      require('@/assets/films/digicam-sample-2.jpg'),
+      require('@/assets/films/digicam-sample-3.jpg'),
+    ],
+  },
 };
 
 export const FILMS: Film[] = looks.looks.map((look) => {

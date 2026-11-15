@@ -80,7 +80,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.5)',
   },
   rule: { height: 1, backgroundColor: C.hairline },
-  bodies: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  // Wraps onto a second line when the bodies don't fit across a narrow phone.
+  bodies: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
   caption: { alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   name: { ...T.eyebrow, color: C.onSurface, fontSize: 13 },
   desc: { ...T.bodyMd, fontSize: 15, lineHeight: 22, color: C.textMuted, textAlign: 'center' },

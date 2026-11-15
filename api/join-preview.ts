@@ -86,8 +86,8 @@ function previewHtml(origin: string, code: string, preview: EventPreview | null)
   const pageUrl = `${origin}/join/${code}`;
   const title = preview ? preview.name : 'Join a roll on Ikausa';
   const description = preview
-    ? `${preview.host_name} invited you to shoot on this roll. Everyone's photos stay hidden until it ends.`
-    : 'A shared film camera for your event. Everyone shoots, nobody peeks until the end.';
+    ? `${preview.host_name} invited you to shoot on this roll. Every guest's photos end up in one shared album.`
+    : 'A shared film camera for your event. See your day the way everyone saw it.';
   const image = ogImage(origin, code, preview?.cover ?? null);
   const size = image.isSized
     ? `<meta property="og:image:width" content="${OG_WIDTH}">\n<meta property="og:image:height" content="${OG_HEIGHT}">`
