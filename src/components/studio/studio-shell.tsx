@@ -87,12 +87,23 @@ export function StudioShell({ eyebrow, title, subtitle, actions, children }: Stu
   );
 }
 
+interface StudioPanelProps {
+  title: string;
+  hint?: string;
+  /** Small label above the title, e.g. "Next step". */
+  eyebrow?: string;
+  /** Highlights the one panel the organizer should look at first. */
+  isFeatured?: boolean;
+  children?: ReactNode;
+}
+
 /** A raised panel for grouping a section of a Studio page. */
-export function StudioPanel({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+export function StudioPanel({ title, hint, eyebrow, isFeatured = false, children }: StudioPanelProps) {
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, isFeatured && styles.panelFeatured]}>
       <View style={styles.panelHead}>
-        <Text style={styles.panelTitle}>{title}</Text>
+        {eyebrow && <Text style={[T.eyebrow, isFeatured && styles.panelEyebrowFeatured]}>{eyebrow}</Text>}
+        <Text style={[styles.panelTitle, isFeatured && styles.panelTitleFeatured]}>{title}</Text>
         {hint && <Text style={styles.panelHint}>{hint}</Text>}
       </View>
       {children}
@@ -153,7 +164,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.hairline,
   },
+  panelFeatured: {
+    padding: 28,
+    backgroundColor: C.cardRaised,
+    borderColor: 'rgba(255,196,153,0.45)',
+  },
   panelHead: { gap: 4 },
-  panelTitle: { ...T.title, fontSize: 24, lineHeight: 30 },
-  panelHint: { ...T.caption, fontSize: 14, color: C.textSoft },
+  panelEyebrowFeatured: { color: C.primary },
+  panelTitle: { ...T.title, fontSize: 22, lineHeight: 28 },
+  panelTitleFeatured: { fontSize: 30, lineHeight: 38 },
+  panelHint: { ...T.caption, fontSize: 14, lineHeight: 20, color: C.textSoft, maxWidth: 620 },
 });

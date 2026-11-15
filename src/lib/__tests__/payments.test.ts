@@ -1,4 +1,10 @@
-import { decidePayment, formatPeso, normalizeReference, submitPayment } from '@/lib/payments';
+import {
+  decidePayment,
+  filterReferenceInput,
+  formatPeso,
+  normalizeReference,
+  submitPayment,
+} from '@/lib/payments';
 import { supabase } from '@/lib/supabase';
 
 jest.mock('@/lib/supabase', () => ({ supabase: { rpc: jest.fn(), from: jest.fn() } }));
@@ -13,14 +19,21 @@ describe('normalizeReference', () => {
     expect(normalizeReference('1023-456-789012')).toBe('1023456789012');
   });
 
-  test('uppercases letters in a Maya reference', () => {
-    expect(normalizeReference('ab12cd34ef')).toBe('AB12CD34EF');
+  test('rejects references with letters', () => {
+    expect(normalizeReference('ab12cd34ef')).toBeNull();
+    expect(normalizeReference('ghfhgfhg')).toBeNull();
   });
 
   test('rejects references that are too short or contain symbols', () => {
     expect(normalizeReference('12345')).toBeNull();
     expect(normalizeReference('12345#7890')).toBeNull();
     expect(normalizeReference('')).toBeNull();
+  });
+});
+
+describe('filterReferenceInput', () => {
+  test('drops letters and symbols but keeps digits and spaces', () => {
+    expect(filterReferenceInput('10a23 456-78#9')).toBe('1023 456789');
   });
 });
 

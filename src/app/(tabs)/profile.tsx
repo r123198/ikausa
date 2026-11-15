@@ -120,7 +120,8 @@ export default function ProfileScreen() {
   const { profile, events } = data;
   const now = new Date();
   const developing = events.filter((e) => eventPhase(e, now) === 'developing');
-  const done = events.filter((e) => ['ready', 'expired'].includes(eventPhase(e, now)));
+  const ready = events.filter((e) => eventPhase(e, now) === 'ready');
+  const history = events.filter((e) => eventPhase(e, now) === 'expired');
   const close = () => setOpenSheet(null);
   const closeAndReload = (message?: string) => {
     setOpenSheet(null);
@@ -237,20 +238,31 @@ export default function ProfileScreen() {
           </Group>
         )}
 
-        {done.length > 0 && (
-          <Group title="Done">
-            {done.map((event) => (
+        {ready.length > 0 && (
+          <Group title="Ready to download">
+            {ready.map((event) => (
               <RollRow
                 key={event.id}
                 event={event}
                 href={`/roll/${event.id}`}
                 detail={
-                  eventPhase(event, now) === 'ready'
-                    ? rollExport(event.id)
-                      ? `${pluralize(event.photoCount, 'photo')} · Saved to this device`
-                      : `${pluralize(event.photoCount, 'photo')} · Export until ${formatDate(event.exportUntil)}`
-                    : `Export closed ${formatDate(event.exportUntil)}`
+                  rollExport(event.id)
+                    ? `${pluralize(event.photoCount, 'photo')} · Saved to this device`
+                    : `${pluralize(event.photoCount, 'photo')} · Download until ${formatDate(event.exportUntil)}`
                 }
+              />
+            ))}
+          </Group>
+        )}
+
+        {history.length > 0 && (
+          <Group title="History">
+            {history.map((event) => (
+              <RollRow
+                key={event.id}
+                event={event}
+                href={`/roll/${event.id}`}
+                detail={`Downloads closed ${formatDate(event.exportUntil)}`}
               />
             ))}
           </Group>

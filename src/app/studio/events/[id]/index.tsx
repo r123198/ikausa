@@ -2,34 +2,25 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { QrCode } from '@/components/qr-code';
+import { ClientPanel, GuestInvitePanel, HandOffPanel } from '@/components/studio/event-panels';
 import { StudioPanel, StudioShell } from '@/components/studio/studio-shell';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
-import { TextField } from '@/components/ui/text-field';
 import { C, T } from '@/constants/theme';
 import { errorMessage, useFocusedAsync } from '@/hooks/use-async';
-import { useCopy } from '@/hooks/use-copy';
 import { eventPhase, fetchEvent, type EventPhase } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
-import { formatDate, formatDateTime, pluralize } from '@/lib/format';
-import { inviteUrl } from '@/lib/invite';
-import {
-  createHostInvite,
-  fetchHostInvites,
-  hostInviteUrl,
-  MAX_CLIENT_NAME_LENGTH,
-  updateClientName,
-} from '@/lib/studio';
-
-const QR_SIZE = 132;
+import { formatDate, formatDateTime } from '@/lib/format';
+import { createHostInvite, fetchHostInvites, updateClientName } from '@/lib/studio';
 
 const PHASE_LABELS: Record<EventPhase, string> = {
   live: 'Live',
   developing: 'Developing',
-  ready: 'Ready',
+  ready: 'Ready to hand off',
   expired: 'Archived',
 };
+
+const NEXT_STEP = 'Next step';
 
 async function loadEvent(id: string) {
   const event = await fetchEvent(id);
@@ -38,30 +29,12 @@ async function loadEvent(id: string) {
   return { event, hostInvites };
 }
 
-/** A link with a copy button that briefly confirms the copy. */
-function CopyRow({ url, label }: { url: string; label: string }) {
-  const { isCopied, copy } = useCopy();
-
+/** One step of the event's timeline; the current one is highlighted. */
+function TimelineItem({ label, value, isCurrent }: { label: string; value: string; isCurrent: boolean }) {
   return (
-    <View style={styles.copyRow}>
-      <Text style={styles.copyUrl} numberOfLines={1} selectable>
-        {url}
-      </Text>
-      <Button
-        label={isCopied ? 'Copied' : label}
-        size="sm"
-        variant="outline"
-        onPress={() => copy(url)}
-      />
-    </View>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={styles.timelineItem}>
+      <Text style={[T.eyebrow, isCurrent && styles.timelineCurrent]}>{label}</Text>
+      <Text style={[styles.timelineValue, isCurrent && styles.timelineCurrent]}>{value}</Text>
     </View>
   );
 }
@@ -70,7 +43,6 @@ export default function StudioEventScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error, isLoading, reload } = useFocusedAsync(() => loadEvent(id), [id]);
-  const [clientDraft, setClientDraft] = useState<string | null>(null);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -83,20 +55,22 @@ export default function StudioEventScreen() {
 
   const { event, hostInvites } = data;
   const phase = eventPhase(event);
-  const clientName = clientDraft ?? event.clientName ?? '';
-  const isClientChanged = clientName.trim() !== (event.clientName ?? '');
-  const unusedLink = hostInvites.find((invite) => invite.usedAt === null);
-  const cohostCount = hostInvites.filter((invite) => invite.usedAt !== null).length;
+  const closes = formatDateTime(event.endsAt);
+  const reveals = formatDate(event.revealAt);
+  const downloadsUntil = formatDate(event.exportUntil);
+  const guests =
+    event.maxParticipants === null ? String(event.memberCount) : `${event.memberCount} of ${event.maxParticipants}`;
 
-  async function saveClient() {
+  async function saveClient(name: string): Promise<boolean> {
     setIsSavingClient(true);
     setActionError(null);
     try {
-      await updateClientName(event.id, clientName);
-      setClientDraft(null);
+      await updateClientName(event.id, name);
       reload();
+      return true;
     } catch (e) {
       setActionError(errorMessage(e));
+      return false;
     } finally {
       setIsSavingClient(false);
     }
@@ -115,6 +89,71 @@ export default function StudioEventScreen() {
     }
   }
 
+  function handOff(hint: string, isFeatured: boolean) {
+    return (
+      <HandOffPanel
+        hint={hint}
+        eyebrow={isFeatured ? NEXT_STEP : undefined}
+        isFeatured={isFeatured}
+        hostInvites={hostInvites}
+        isCreating={isCreatingLink}
+        isDisabled={phase === 'expired'}
+        onCreate={createLink}
+      />
+    );
+  }
+
+  const client = (
+    <ClientPanel savedName={event.clientName} isSaving={isSavingClient} onSave={saveClient} />
+  );
+
+  // The panel to look at first, then the supporting ones.
+  let featured;
+  let others;
+  switch (phase) {
+    case 'live':
+      featured = (
+        <GuestInvitePanel
+          eventId={event.id}
+          inviteCode={event.inviteCode}
+          eyebrow={NEXT_STEP}
+          isFeatured
+          hint={`Put this QR code where guests can see it, or send them the link. The roll closes ${closes}.`}
+        />
+      );
+      others = (
+        <>
+          {client}
+          {handOff('Optional for now. After the reveal, send your client this link so they can download the album.', false)}
+        </>
+      );
+      break;
+    case 'developing':
+      featured = handOff(
+        `The roll has closed. Photos reveal on ${reveals}. Get your client's host link ready now, then send it once the photos are out.`,
+        true,
+      );
+      others = client;
+      break;
+    case 'ready':
+      featured = handOff(
+        `The photos are revealed. Send your client this one-time link. They sign in, see every photo and can download the album until ${downloadsUntil}.`,
+        true,
+      );
+      others = client;
+      break;
+    case 'expired':
+      featured = (
+        <StudioPanel
+          title="This event is finished"
+          hint={`Downloads closed on ${downloadsUntil}. There's nothing left to do here.`}
+          isFeatured
+        />
+      );
+      others = client;
+      break;
+  }
+
   return (
     <StudioShell
       eyebrow={`${PHASE_LABELS[phase]} · ${filmById(event.cameraId).name}`}
@@ -123,135 +162,42 @@ export default function StudioEventScreen() {
       actions={
         <>
           <Button label="All events" variant="outline" onPress={() => router.push('/studio')} />
-          <Button label="Open roll" onPress={() => router.push(`/roll/${event.id}`)} />
+          <Button label="Open roll" variant="outline" onPress={() => router.push(`/roll/${event.id}`)} />
         </>
       }>
-      <View style={styles.stats}>
-        <Stat
-          value={
-            event.maxParticipants === null
-              ? String(event.memberCount)
-              : `${event.memberCount}/${event.maxParticipants}`
-          }
-          label="Guests joined"
-        />
-        <Stat value={String(event.photoCount)} label="Photos" />
-        <Stat value={formatDateTime(event.endsAt)} label="Closes" />
-        <Stat value={formatDate(event.revealAt)} label="Reveals" />
-        <Stat value={formatDate(event.exportUntil)} label="Downloads until" />
-      </View>
-
       {actionError && <Text style={styles.error}>{actionError}</Text>}
 
-      <View style={styles.columns}>
-        <View style={styles.column}>
-          <StudioPanel title="Client" hint="Who this event is for. Only you see this.">
-            <TextField
-              label="Client name"
-              placeholder="e.g. Ana & Paolo"
-              value={clientName}
-              maxLength={MAX_CLIENT_NAME_LENGTH}
-              onChangeText={setClientDraft}
-              onSubmitEditing={() => isClientChanged && saveClient()}
-            />
-            <Button
-              label="Save"
-              size="sm"
-              disabled={!isClientChanged}
-              isLoading={isSavingClient}
-              onPress={saveClient}
-              style={styles.alignStart}
-            />
-          </StudioPanel>
+      {featured}
 
-          <StudioPanel
-            title="Hand off to your client"
-            hint="Send this one-time link to the celebrant. Once they open it and sign in, they become a co-host: they see every photo and can download the album, but can't change or delete the event.">
-            {unusedLink ? (
-              <CopyRow url={hostInviteUrl(unusedLink.token)} label="Copy host link" />
-            ) : (
-              <Button
-                label={cohostCount > 0 ? 'Create another host link' : 'Create host link'}
-                isLoading={isCreatingLink}
-                disabled={phase === 'expired'}
-                onPress={createLink}
-                style={styles.alignStart}
-              />
-            )}
-            <Text style={styles.note}>
-              {cohostCount > 0
-                ? `${pluralize(cohostCount, 'co-host')} so far.`
-                : 'No co-hosts yet.'}
-              {unusedLink ? ' This link works once; create another after it’s used.' : ''}
-            </Text>
-          </StudioPanel>
-        </View>
-
-        <View style={styles.column}>
-          <StudioPanel title="Guest invite" hint="Guests scan this or open the link to join and shoot.">
-            <View style={styles.qrRow}>
-              <View style={styles.qrWrap}>
-                <QrCode value={inviteUrl(event.inviteCode)} size={QR_SIZE} />
-              </View>
-              <View style={styles.qrText}>
-                <Text style={styles.codeLabel}>Invite code</Text>
-                <Text style={styles.code}>{event.inviteCode}</Text>
-              </View>
-            </View>
-            <CopyRow url={inviteUrl(event.inviteCode)} label="Copy link" />
-          </StudioPanel>
-
-          <StudioPanel
-            title="Print kit"
-            hint="An A4 poster and four table cards with the event name and QR code. Print them or save as PDF for the venue.">
-            <Button
-              label="Open print kit"
-              variant="outline"
-              onPress={() => router.push(`/studio/events/${event.id}/print`)}
-              style={styles.alignStart}
-            />
-          </StudioPanel>
-        </View>
+      <View style={styles.timeline}>
+        <TimelineItem label="Guests" value={guests} isCurrent={false} />
+        <TimelineItem label="Photos" value={String(event.photoCount)} isCurrent={false} />
+        <TimelineItem label="Closes" value={closes} isCurrent={phase === 'live'} />
+        <TimelineItem label="Reveals" value={reveals} isCurrent={phase === 'developing'} />
+        <TimelineItem label="Downloads until" value={downloadsUntil} isCurrent={phase === 'ready'} />
       </View>
+
+      <View style={styles.others}>{others}</View>
     </StudioShell>
   );
 }
 
 const styles = StyleSheet.create({
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  stat: {
-    flexGrow: 1,
-    minWidth: 150,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: C.hairline,
-    gap: 4,
-  },
-  statValue: { ...T.figure },
-  statLabel: { ...T.eyebrow },
-
-  columns: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
-  column: { flexGrow: 1, flexBasis: 360, gap: 20 },
-  alignStart: { alignSelf: 'flex-start' },
-  note: { ...T.caption, fontSize: 13 },
   error: { ...T.caption, fontSize: 14, color: C.error },
 
-  copyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  copyUrl: {
-    flex: 1,
-    ...T.caption,
-    fontSize: 13,
-    color: C.textSoft,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: C.cardRaised,
+  timeline: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 16,
+    columnGap: 32,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: C.hairline,
   },
-  qrRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  qrWrap: { padding: 10, borderRadius: 14, backgroundColor: C.white },
-  qrText: { gap: 6 },
-  codeLabel: { ...T.eyebrow },
-  code: { ...T.figure, fontSize: 28, lineHeight: 34, color: C.primary, letterSpacing: 3 },
+  timelineItem: { gap: 4 },
+  timelineValue: { ...T.figure, fontSize: 16, lineHeight: 22, color: C.textSoft },
+  timelineCurrent: { color: C.primary },
+
+  others: { gap: 20 },
 });

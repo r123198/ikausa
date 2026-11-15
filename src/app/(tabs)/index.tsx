@@ -23,7 +23,7 @@ import { useAuth, useUserId } from '@/context/auth-context';
 import { useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import { eventPhase, fetchMyEvents, shotsLeft, signedUrls, type EventSummary } from '@/lib/events';
-import { formatDateRange, timeUntil } from '@/lib/format';
+import { formatDate, formatDateRange, timeUntil } from '@/lib/format';
 
 const PAGE_PADDING = 20;
 const STRIP_SIZE = 4;
@@ -129,6 +129,7 @@ interface AlbumRowProps {
 
 function AlbumRow({ event, userId, urls, stripWidth }: AlbumRowProps) {
   const router = useRouter();
+  const isDeveloping = eventPhase(event) === 'developing';
   const previews = event.previewPaths.flatMap((p) => {
     const url = urls.get(p);
     return url ? [url] : [];
@@ -141,7 +142,7 @@ function AlbumRow({ event, userId, urls, stripWidth }: AlbumRowProps) {
       accessibilityRole="button"
       accessibilityLabel={`${event.name} album`}
       style={({ pressed }) => [styles.album, pressed && styles.pressed]}
-      onPress={() => router.push(`/roll/${event.id}`)}>
+      onPress={() => router.push(isDeveloping ? `/developing/${event.id}` : `/roll/${event.id}`)}>
       <View style={styles.albumHeader}>
         <View style={styles.albumTitleRow}>
           <Text style={styles.albumTitle} numberOfLines={1}>
@@ -158,7 +159,7 @@ function AlbumRow({ event, userId, urls, stripWidth }: AlbumRowProps) {
 
       {previews.length === 0 ? (
         <Text style={styles.noPhotos}>
-          {eventPhase(event) === 'expired' ? 'Export closed · photos removed' : 'No photos yet'}
+          {isDeveloping ? `Developing · reveals ${formatDate(event.revealAt)}` : 'No photos yet'}
         </Text>
       ) : (
         <View style={styles.strip}>
@@ -203,7 +204,8 @@ export default function HomeScreen() {
   const contentWidth = Math.min(width, 800) - PAGE_PADDING * 2;
   const cardWidth = Math.min(contentWidth * 0.62, 280);
   const live = data.events.filter((e) => eventPhase(e, now) === 'live');
-  const albums = data.events.filter((e) => ['ready', 'expired'].includes(eventPhase(e, now)));
+  // Closed rolls whose photos can still be seen or downloaded. Expired ones live in Profile → History.
+  const albums = data.events.filter((e) => ['developing', 'ready'].includes(eventPhase(e, now)));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -248,7 +250,7 @@ export default function HomeScreen() {
 
         <Text style={styles.eyebrow}>Albums</Text>
         {albums.length === 0 ? (
-          <Text style={styles.noPhotos}>Finished rolls land here once their photos are revealed.</Text>
+          <Text style={styles.noPhotos}>Finished rolls land here until their download window closes.</Text>
         ) : (
           albums.map((event) => (
             <AlbumRow

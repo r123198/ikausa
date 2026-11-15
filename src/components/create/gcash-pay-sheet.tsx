@@ -8,7 +8,13 @@ import { TextField } from '@/components/ui/text-field';
 import { C, T } from '@/constants/theme';
 import { errorMessage } from '@/hooks/use-async';
 import { fetchCredits } from '@/lib/passes';
-import { formatPeso, GCASH_ACCOUNT_NAME, GCASH_QR_URL, submitPayment } from '@/lib/payments';
+import {
+  filterReferenceInput,
+  formatPeso,
+  GCASH_ACCOUNT_NAME,
+  GCASH_QR_URL,
+  submitPayment,
+} from '@/lib/payments';
 
 const CONFIRM_POLL_INTERVAL_MS = 5000;
 /** The QR image is GCash's card (QR, masked name, number), which is taller than wide. */
@@ -127,8 +133,9 @@ export function GcashPaySheet({
         label="Reference number"
         placeholder="e.g. 1023 456 789012"
         value={reference}
-        onChangeText={setReference}
-        autoCapitalize="characters"
+        onChangeText={(text) => setReference(filterReferenceInput(text))}
+        keyboardType="number-pad"
+        inputMode="numeric"
         autoCorrect={false}
         maxLength={40}
       />

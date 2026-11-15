@@ -2,7 +2,8 @@ import { Link, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { CoverImage } from '@/components/cover-image';
-import { StudioPanel, StudioShell, studioContentWidth } from '@/components/studio/studio-shell';
+import { GettingStarted } from '@/components/studio/getting-started';
+import { StudioShell, studioContentWidth } from '@/components/studio/studio-shell';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/screen-state';
 import { C, T } from '@/constants/theme';
@@ -10,18 +11,40 @@ import { useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import { eventPhase, fetchMyEvents, type EventPhase, type EventSummary } from '@/lib/events';
 import { filmById } from '@/lib/film/films';
-import { formatDateRange, pluralize } from '@/lib/format';
+import { formatDate, formatDateTime, pluralize } from '@/lib/format';
 import { fetchCredits, fetchPasses } from '@/lib/passes';
 
 const MINUTE_MS = 60_000;
 const GRID_GAP = 16;
 
+/** Organizers with fewer events than this still see the getting-started guide. */
+const GUIDE_EVENT_LIMIT = 3;
+
+// Sections in the order they need attention: archived events need nothing.
 const SECTIONS: { phase: EventPhase; title: string; hint: string }[] = [
-  { phase: 'live', title: 'Live', hint: 'Guests can shoot right now.' },
-  { phase: 'developing', title: 'Developing', hint: 'Closed, waiting for the reveal.' },
-  { phase: 'ready', title: 'Ready', hint: 'Revealed. Hand off the album to your client.' },
-  { phase: 'expired', title: 'Archived', hint: 'The download window has closed.' },
+  { phase: 'live', title: 'Live now', hint: 'Guests are shooting. Make sure the QR code is at the venue.' },
+  {
+    phase: 'ready',
+    title: 'Ready to hand off',
+    hint: 'Photos are revealed. Open the event and send your client their host link.',
+  },
+  { phase: 'developing', title: 'Developing', hint: 'The roll has closed. Photos reveal on the date shown.' },
+  { phase: 'expired', title: 'Archived', hint: 'Downloads have closed. Nothing left to do.' },
 ];
+
+/** The one date that matters for an event right now. */
+function nextDate(event: EventSummary, phase: EventPhase): string {
+  switch (phase) {
+    case 'live':
+      return `Closes ${formatDateTime(event.endsAt)}`;
+    case 'developing':
+      return `Reveals ${formatDate(event.revealAt)}`;
+    case 'ready':
+      return `Downloads until ${formatDate(event.exportUntil)}`;
+    case 'expired':
+      return `Closed ${formatDate(event.exportUntil)}`;
+  }
+}
 
 async function loadDashboard() {
   const [events, passes, credits] = await Promise.all([fetchMyEvents(), fetchPasses(), fetchCredits()]);
@@ -34,7 +57,13 @@ function columnsFor(width: number): number {
   return 1;
 }
 
-function EventCard({ event, width }: { event: EventSummary; width: number }) {
+interface EventCardProps {
+  event: EventSummary;
+  phase: EventPhase;
+  width: number;
+}
+
+function EventCard({ event, phase, width }: EventCardProps) {
   const guests =
     event.maxParticipants === null
       ? pluralize(event.memberCount, 'guest')
@@ -53,13 +82,15 @@ function EventCard({ event, width }: { event: EventSummary; width: number }) {
         ]}>
         <CoverImage cover={event.cover} style={styles.cardCover} />
         <View style={styles.cardBody}>
-          <Text style={styles.cardClient} numberOfLines={1}>
-            {event.clientName ?? 'No client name yet'}
-          </Text>
           <Text style={styles.cardTitle} numberOfLines={1}>
             {event.name}
           </Text>
-          <Text style={styles.cardMeta}>{formatDateRange(event.createdAt, event.endsAt)}</Text>
+          <Text style={styles.cardClient} numberOfLines={1}>
+            {event.clientName ? `For ${event.clientName}` : 'No client name yet'}
+          </Text>
+          <Text style={[styles.cardDate, phase !== 'expired' && styles.cardDateActive]}>
+            {nextDate(event, phase)}
+          </Text>
           <View style={styles.statRow}>
             <Text style={styles.stat}>{guests}</Text>
             <Text style={styles.statDot}>·</Text>
@@ -89,51 +120,55 @@ export default function StudioDashboard() {
 
     // Only plans with credits left, so a plan never shows twice and empty ones don't crowd the page.
     const held = data.passes.filter((p) => (data.credits.get(p.id) ?? 0) > 0);
+    const isNew = data.events.length < GUIDE_EVENT_LIMIT;
     return (
       <>
-        {held.length > 0 && (
-          <View style={styles.credits}>
-            {held.map((pass) => (
-              <View key={pass.id} style={styles.credit}>
-                <Text style={styles.creditCount}>{data.credits.get(pass.id)}</Text>
-                <Text style={styles.creditLabel}>{pass.name}</Text>
-              </View>
-            ))}
-          </View>
+        {isNew && (
+          <GettingStarted
+            hasEvent={data.events.length > 0}
+            hasPhotos={data.events.some((e) => e.photoCount > 0)}
+            onCreate={() => router.push('/create/name')}
+          />
         )}
-        <Text style={[styles.creditNote, held.length > 0 && styles.creditNoteTight]}>
-          {held.length > 0
-            ? 'Credits left. Each paid event uses one.'
-            : 'No credits yet. Pay for a plan when you create an event, or contact the Ikausa team to top up.'}
-        </Text>
 
-        {data.events.length === 0 ? (
-          <StudioPanel
-            title="No events yet"
-            hint="Create your first event for a client. You’ll get a QR code for guests, a print kit and a host link for your client.">
-            <Button label="Create an event" onPress={() => router.push('/create/name')} />
-          </StudioPanel>
-        ) : (
-          SECTIONS.map(({ phase, title, hint }) => {
-            const events = data.events.filter((e) => eventPhase(e, now) === phase);
-            if (events.length === 0) return null;
-            return (
-              <View key={phase} style={styles.section}>
-                <View style={styles.sectionHead}>
-                  <Text style={styles.sectionTitle}>
-                    {title} <Text style={styles.sectionCount}>{events.length}</Text>
-                  </Text>
-                  <Text style={styles.sectionHint}>{hint}</Text>
-                </View>
-                <View style={styles.grid}>
-                  {events.map((event) => (
-                    <EventCard key={event.id} event={event} width={cardWidth} />
-                  ))}
-                </View>
+        {SECTIONS.map(({ phase, title, hint }) => {
+          const events = data.events.filter((e) => eventPhase(e, now) === phase);
+          if (events.length === 0) return null;
+          const isQuiet = phase === 'expired';
+          return (
+            <View key={phase} style={styles.section}>
+              <View style={styles.sectionHead}>
+                <Text style={[styles.sectionTitle, isQuiet && styles.sectionTitleQuiet]}>
+                  {title} <Text style={styles.sectionCount}>{events.length}</Text>
+                </Text>
+                <Text style={styles.sectionHint}>{hint}</Text>
               </View>
-            );
-          })
-        )}
+              <View style={styles.grid}>
+                {events.map((event) => (
+                  <EventCard key={event.id} event={event} phase={phase} width={cardWidth} />
+                ))}
+              </View>
+            </View>
+          );
+        })}
+
+        <View style={styles.credits}>
+          <Text style={T.eyebrow}>Plan credits</Text>
+          {held.length > 0 ? (
+            <View style={styles.creditList}>
+              {held.map((pass) => (
+                <Text key={pass.id} style={styles.credit}>
+                  <Text style={styles.creditCount}>{data.credits.get(pass.id)}</Text> × {pass.name}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+          <Text style={styles.creditNote}>
+            {held.length > 0
+              ? 'Each paid event uses one credit.'
+              : 'None yet. You pay for a plan when you create an event.'}
+          </Text>
+        </View>
       </>
     );
   }
@@ -150,25 +185,16 @@ export default function StudioDashboard() {
 }
 
 const styles = StyleSheet.create({
-  credits: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  credit: {
-    minWidth: 150,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: 'rgba(255,196,153,0.35)',
-    gap: 2,
-  },
-  creditCount: { ...T.figure, fontSize: 28, lineHeight: 34, color: C.primary },
-  creditLabel: { ...T.caption, fontSize: 13, color: C.textSoft },
+  credits: { gap: 6, paddingTop: 20, borderTopWidth: 1, borderTopColor: C.hairline },
+  creditList: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, rowGap: 4 },
+  credit: { ...T.caption, fontSize: 14, color: C.textSoft },
+  creditCount: { ...T.figure, fontSize: 14, lineHeight: 20, color: C.onSurface },
   creditNote: { ...T.caption, fontSize: 13 },
-  creditNoteTight: { marginTop: -16 },
 
   section: { gap: 14 },
   sectionHead: { gap: 2 },
   sectionTitle: { ...T.title, fontSize: 26, lineHeight: 32 },
+  sectionTitleQuiet: { fontSize: 20, lineHeight: 26, color: C.textSoft },
   sectionCount: { ...T.figure, fontSize: 18, color: C.textMuted },
   sectionHint: { ...T.caption, fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
@@ -186,9 +212,10 @@ const styles = StyleSheet.create({
   cardPressed: { transform: [{ scale: 0.99 }] },
   cardCover: { width: '100%', height: 150 },
   cardBody: { padding: 18, gap: 4 },
-  cardClient: { ...T.eyebrow, color: C.primary },
   cardTitle: { ...T.title },
-  cardMeta: { ...T.caption, fontSize: 13 },
+  cardClient: { ...T.caption, fontSize: 14, color: C.textSoft },
+  cardDate: { ...T.caption, fontSize: 13, fontWeight: '600', marginTop: 6 },
+  cardDateActive: { color: C.primary },
   statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   stat: { ...T.caption, fontSize: 13, color: C.textSoft },
   statDot: { ...T.caption, fontSize: 13 },
