@@ -142,8 +142,19 @@ function setUpPlanPicker() {
   requestAnimationFrame(() => options.classList.add('is-ready'));
 }
 
+// The floating demo QR belongs to the hero; past it, it would sit on top of the page's text.
+function setUpTryCard() {
+  const card = document.querySelector('.try-card');
+  const hero = document.querySelector('.hero');
+  if (!card || !hero) return;
+  new IntersectionObserver(([entry]) => {
+    card.classList.toggle('is-hidden', !entry.isIntersecting);
+  }).observe(hero);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setUpFilmPicker();
+  setUpTryCard();
   setUpTour();
   setUpPlanPicker();
 });

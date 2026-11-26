@@ -85,3 +85,37 @@ describe('formatPeso', () => {
     expect(formatPeso(309.5)).toBe('₱309.50');
   });
 });
+
+describe('GCASH_QR_URL', () => {
+  const original = process.env.EXPO_PUBLIC_GCASH_QR_URL;
+  afterEach(() => {
+    process.env.EXPO_PUBLIC_GCASH_QR_URL = original;
+  });
+
+  function loadOn(os: 'web' | 'ios', envUrl: string | undefined) {
+    if (envUrl === undefined) delete process.env.EXPO_PUBLIC_GCASH_QR_URL;
+    else process.env.EXPO_PUBLIC_GCASH_QR_URL = envUrl;
+    let mod: typeof import('@/lib/payments') | undefined;
+    jest.isolateModules(() => {
+      jest.doMock('react-native', () => ({ Platform: { OS: os } }));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- fresh copy per platform
+      mod = require('@/lib/payments');
+    });
+    jest.dontMock('react-native');
+    return mod!;
+  }
+
+  test('web falls back to the bundled QR when the env var is missing from the deploy', () => {
+    const { GCASH_QR_URL, canPayWithGcash } = loadOn('web', undefined);
+    expect(GCASH_QR_URL).toBe('/gcash-qr.jpg');
+    expect(canPayWithGcash).toBe(true);
+  });
+
+  test('an explicit env URL wins', () => {
+    expect(loadOn('web', 'https://cdn.example.com/qr.jpg').GCASH_QR_URL).toBe('https://cdn.example.com/qr.jpg');
+  });
+
+  test('native keeps GCash hidden until it is configured', () => {
+    expect(loadOn('ios', undefined).canPayWithGcash).toBe(false);
+  });
+});

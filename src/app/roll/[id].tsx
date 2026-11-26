@@ -26,6 +26,7 @@ import { useAuth } from '@/context/auth-context';
 import { useFocusedAsync } from '@/hooks/use-async';
 import { useNow } from '@/hooks/use-now';
 import { isAppClip } from '@/lib/app-clip';
+import { isDemoRoll } from '@/lib/demo';
 import {
   eventPhase,
   fetchEvent,
@@ -67,6 +68,23 @@ function emptyMessage(phase: EventPhase): string {
     default:
       return 'No photos on this roll.';
   }
+}
+
+/** Guests on a host-only roll only get their own shots back; say so instead of looking empty. */
+function HiddenPhotosNotice({ isDemo }: { isDemo: boolean }) {
+  return (
+    <View style={styles.notice} accessibilityRole="text">
+      <Icon ios="lock.fill" material="lock" size={16} color={C.primary} />
+      <View style={styles.flex}>
+        <Text style={styles.noticeTitle}>Photos hidden</Text>
+        <Text style={styles.noticeText}>
+          {isDemo
+            ? 'You see only your own shots. Demo photos are deleted when this demo ends.'
+            : 'You see only your own shots. Everyone’s photos are visible to the host.'}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 function HeaderButton({
@@ -284,6 +302,10 @@ export default function RollScreen() {
 
         <View style={styles.rule} />
 
+        {!event.everyoneCanSee && event.myRole === 'guest' && (
+          <HiddenPhotosNotice isDemo={isDemoRoll(event.inviteCode)} />
+        )}
+
         {photos.length === 0 ? (
           <Text style={styles.empty}>{emptyMessage(phase)}</Text>
         ) : (
@@ -363,6 +385,18 @@ const styles = StyleSheet.create({
 
   actions: { flexDirection: 'row', gap: 8 },
   rule: { height: 1, backgroundColor: C.hairline },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.hairline,
+  },
+  noticeTitle: { ...T.bodyMd, fontSize: 15, fontWeight: '700', color: C.onSurface },
+  noticeText: { ...T.caption, fontSize: 14, color: C.textSoft, marginTop: 2 },
   empty: { ...T.caption, fontSize: 15, lineHeight: 22, textAlign: 'center', paddingVertical: 32 },
 
   toastWrap: { position: 'absolute', left: 16, right: 16, bottom: 16 },

@@ -32,6 +32,26 @@ select id, true from auth.users where email = 'you@example.com'
 on conflict (user_id) do update set is_admin = true;
 ```
 
+## 1a-2. Landing page demo roll
+
+The "Try Ikausa" QR on the landing page opens `/join/DEMO`. Run `migrations/20261126000000_demo_roll.sql`
+and `migrations/20261126000001_demo_roll_rotation.sql`, then create the first roll once, owned by your admin
+account. Only that account sees every demo photo; each guest sees only their own 15 Digicam shots.
+
+Each demo runs for 2 months. When it ends, `purge-expired` starts a fresh `DEMO` roll with the same name,
+cover and settings, then deletes the old roll and its photos. Nothing to do by hand.
+
+```sql
+insert into public.events
+  (owner_id, name, invite_code, ends_at, reveal_option, export_days,
+   max_participants, shots_per_person, everyone_can_see, camera_id, pass_id, is_demo)
+select user_id, 'Try Ikausa', 'DEMO', now() + interval '2 months', 'during', 7,
+   null, 15, false, 'digicam', 'demo', true
+from public.organizers
+where is_admin
+limit 1;
+```
+
 ## 1b. Google sign-in
 
 The app signs in with Google through Supabase Auth (no Google SDK in the app).

@@ -17,7 +17,8 @@ import { PNG } from 'pngjs';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/lib/film/looks.json'), 'utf8'));
 const OUT_DIR = path.join(ROOT, 'assets/films');
-const SAMPLES = ['trvl_2.jpg', 'trvl_4.jpg', 'trvl_5.jpg'];
+// The first sample is also the landing page's film-look picker photo, so keep it 2:3 portrait.
+const SAMPLES = ['family-2.jpg', 'birthday-3.jpg', 'wedding-3.jpg'];
 const PREVIEW_WIDTH = 540;
 const N = config.lutSize;
 
@@ -167,7 +168,7 @@ function develop(img, look, table) {
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const samples = SAMPLES.map((file) =>
-  downscale(jpeg.decode(fs.readFileSync(path.join(ROOT, 'assets/images/samples', file)), { useTArray: true, maxMemoryUsageInMB: 2048 }), PREVIEW_WIDTH)
+  downscale(jpeg.decode(fs.readFileSync(path.join(ROOT, 'assets/images/occasions', file)), { useTArray: true, maxMemoryUsageInMB: 2048 }), PREVIEW_WIDTH)
 );
 
 for (const look of config.looks) {

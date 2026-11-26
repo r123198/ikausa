@@ -127,7 +127,8 @@ export default function GuestsStep() {
   function nextLabel(): string {
     if (!needsPurchase) return 'Create';
     if (canPurchase) return `Buy ${pass.name}`;
-    if (!canPayHere) return 'Buy in the app';
+    // GCash only waits on its price loading; never send web hosts to the app stores.
+    if (!canPayHere && !usesGcash) return 'Buy in the app';
     return isGcashPending ? 'Payment being checked' : 'Pay with GCash';
   }
 
@@ -235,7 +236,7 @@ export default function GuestsStep() {
       footerNote={
         error ??
         notice ??
-        (needsPurchase && !canPayHere ? 'Paid plans can be bought in the iOS or Android app.' : null)
+        (needsPurchase && !canPayHere && !usesGcash ? 'Paid plans can be bought in the iOS or Android app.' : null)
       }
       footerNoteTone={!error && notice ? 'info' : 'error'}
       onNext={handleNext}>

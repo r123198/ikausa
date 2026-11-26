@@ -45,8 +45,8 @@ const OPTIONS: {
 ];
 
 const PREVIEWS = [
-  require('@/assets/images/samples/trvl_1.jpg'),
-  require('@/assets/images/samples/trvl_3.jpg'),
+  require('@/assets/images/occasions/birthday-3.jpg'),
+  require('@/assets/images/occasions/wedding-3.jpg'),
 ];
 
 export default function RevealStep() {

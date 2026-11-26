@@ -240,6 +240,64 @@ a { color: inherit; }
 .hero h1 span { text-wrap: balance; }
 .hero .actions { justify-content: center; }
 
+/* "Try it" demo: a floating QR card on wide screens, a plain link everywhere else. */
+.try-card { display: none; }
+
+.try-card {
+  position: fixed;
+  left: clamp(1rem, 2vw, 2rem);
+  bottom: clamp(1rem, 2vw, 2rem);
+  z-index: 40;
+  width: 13.5rem;
+  padding: 1.25rem 1.25rem 1.1rem;
+  justify-items: center;
+  gap: 0.9rem;
+  text-align: center;
+  background: rgba(26, 26, 28, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--color-night-line);
+  border-radius: 1.75rem;
+  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.65);
+  animation: try-card-in var(--duration-slow) var(--ease-out-expo) 600ms both;
+}
+.try-card__eyebrow {
+  font-family: var(--font-stamp);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-soft);
+}
+.try-card__eyebrow span { color: var(--color-accent); margin-right: 0.35em; }
+.try-card__qr {
+  display: block;
+  padding: 0.4rem;
+  background: #fff;
+  border-radius: 0.9rem;
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+}
+.try-card__qr:hover { transform: scale(1.04); }
+.try-card__qr img { width: 8.25rem; height: 8.25rem; }
+.try-card__note {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-soft);
+}
+
+.try-card.is-hidden {
+  opacity: 0;
+  transform: translateY(1rem);
+  visibility: hidden;
+  transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease, visibility 0s var(--duration-fast);
+}
+.try-card:not(.is-hidden) {
+  transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease;
+}
+
+@keyframes try-card-in {
+  from { opacity: 0; transform: translateY(1rem); }
+}
+
 /* The phone walks through a guest's night; steps beside it say what's on screen. */
 .tour {
   display: grid;
@@ -905,8 +963,17 @@ mark {
   .closing .phone--right { rotate: 7deg; translate: 0 2rem; }
 }
 
+/* Wide enough that the card sits beside the content instead of on top of the copy. */
+@media (min-width: 1100px) and (pointer: fine) {
+  .try-card { display: grid; }
+  .try-link { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .try-card { animation: none; }
+  .try-card__qr { transition: none; }
+  .try-card__qr:hover { transform: none; }
   .print { animation: none; transition: none; }
   .film-photo, .button, .film-chip, .tour__step { transition: none; }
   .button:hover { transform: none; }

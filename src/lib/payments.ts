@@ -1,10 +1,19 @@
 // GCash / Maya payments on the web. The host pays the ikausa QR code and submits the
 // receipt's reference number; an admin confirms it in Studio, which adds a pass credit.
 // The rules live in the database (see the gcash_payments migration).
+import { Platform } from 'react-native';
+
 import { supabase } from '@/lib/supabase';
 
-/** Public URL of the GCash "Receive money" QR image. GCash is hidden until it is set. */
-export const GCASH_QR_URL = process.env.EXPO_PUBLIC_GCASH_QR_URL ?? null;
+/** The QR bundled in public/, served by the web build. */
+const BUNDLED_GCASH_QR_PATH = '/gcash-qr.jpg';
+
+/**
+ * Public URL of the GCash "Receive money" QR image. The web falls back to the bundled one,
+ * so GCash never silently disappears when the env var is missing from a deploy.
+ */
+export const GCASH_QR_URL =
+  process.env.EXPO_PUBLIC_GCASH_QR_URL || (Platform.OS === 'web' ? BUNDLED_GCASH_QR_PATH : null);
 /** Name shown under the QR, so hosts can check who they are paying. */
 export const GCASH_ACCOUNT_NAME = process.env.EXPO_PUBLIC_GCASH_ACCOUNT_NAME ?? 'ikausa';
 

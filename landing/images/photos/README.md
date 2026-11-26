@@ -16,10 +16,14 @@ with people in them, and only of guests who agreed to be on the website.
 | 03 | Hero phone: roll cover (invite screen and developed roll) |
 | 04 | Hero phone: camera viewfinder; also behind the invite sheet in "How it works" |
 | 05 – 09 | Hero phone: developed roll grid |
-| 10 | "The roll" phone: roll cover |
+| 10 | "The roll" phone: roll cover (Santos Reunion) |
 | 11 – 16 | "The roll" phone: scrolling photo grid |
 | 17 | Closing, left phone: wedding invite cover |
 | 18 | Closing, right phone: camera viewfinder |
 
 The film-look picker uses its own four files (`images/original-1.webp`, `disposable-1.webp`,
-`polaroid-1.webp`, `pinhole-1.webp`): the same shot exported in each look.
+`polaroid-1.webp`, `pinhole-1.webp`, `digicam-1.webp`): the same shot in each look. They are
+`assets/films/<look>-sample-1.jpg` from `node scripts/build-film-looks.mjs`, converted with
+`cwebp -q 78 -metadata none`.
+
+The current photos come from `assets/images/occasions/` (the app's cover presets).

@@ -68,8 +68,19 @@
         <div class="actions">
           <a class="button" href="https://ikausa.vercel.app/sign-in">Start a roll</a>
           <a class="button button--ghost" href="#how">See how it works</a>
+          <!-- Phones can't scan their own screen, so they get a link instead of the QR card. -->
+          <a class="button button--ghost try-link" href="https://ikausa.vercel.app/join/DEMO">Try it free</a>
         </div>
       </div>
+
+      <!-- Demo roll (invite code DEMO): 15 Digicam shots as a guest, photos visible only to us. -->
+      <aside class="try-card" aria-labelledby="try-card-heading">
+        <p class="try-card__eyebrow" id="try-card-heading"><span aria-hidden="true">✱</span> Try Ikausa</p>
+        <a class="try-card__qr" href="https://ikausa.vercel.app/join/DEMO" aria-label="Open the free demo roll">
+          <img src="images/demo-qr.svg" width="132" height="132" alt="QR code for the free demo roll">
+        </a>
+        <p class="try-card__note">Scan with your phone camera for 15&nbsp;free shots. No download needed.</p>
+      </aside>
 
       <div class="tour" data-tour>
         <div class="prints" aria-hidden="true">
@@ -185,8 +196,8 @@
               <img src="images/photos/10.webp" width="600" height="800" alt="" loading="lazy">
               <span class="roll-btn roll-btn--left"><svg><use href="#i-back"/></svg></span>
               <span class="roll-btn roll-btn--right"><svg><use href="#i-gear"/></svg></span>
-              <p class="app-eyebrow">Barkada trip</p>
-              <p class="app-title">Siargao '26</p>
+              <p class="app-eyebrow">Family reunion</p>
+              <p class="app-title">Santos Reunion '26</p>
               <div class="app-stats">
                 <p><b>486</b>Photos</p>
                 <p><b>12</b>People</p>
@@ -338,11 +349,11 @@
               <span class="cam-icon"><svg><use href="#i-qr"/></svg></span>
             </div>
             <div class="cam-viewfinder">
-              <img class="film-photo" data-film-photo="original" src="images/original-1.webp" width="540" height="810" loading="lazy" alt="Sunset above the clouds from a plane window, in the Original look">
-              <img class="film-photo is-active" data-film-photo="disposable" src="images/disposable-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Disposable look">
-              <img class="film-photo" data-film-photo="polaroid" src="images/polaroid-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Polaroid look">
-              <img class="film-photo" data-film-photo="pinhole" src="images/pinhole-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Pinhole look">
-              <img class="film-photo" data-film-photo="digicam" src="images/digicam-1.webp" width="540" height="810" loading="lazy" alt="The same sunset in the Digicam look">
+              <img class="film-photo" data-film-photo="original" src="images/original-1.webp" width="540" height="810" loading="lazy" alt="Family raising a toast over dinner, in the Original look">
+              <img class="film-photo is-active" data-film-photo="disposable" src="images/disposable-1.webp" width="540" height="810" loading="lazy" alt="The same toast in the Disposable look">
+              <img class="film-photo" data-film-photo="polaroid" src="images/polaroid-1.webp" width="540" height="810" loading="lazy" alt="The same toast in the Polaroid look">
+              <img class="film-photo" data-film-photo="pinhole" src="images/pinhole-1.webp" width="540" height="810" loading="lazy" alt="The same toast in the Pinhole look">
+              <img class="film-photo" data-film-photo="digicam" src="images/digicam-1.webp" width="540" height="810" loading="lazy" alt="The same toast in the Digicam look">
               <span class="stamp" aria-hidden="true">'26 10 31</span>
               <div class="cam-overlay" aria-hidden="true">
                 <span class="cam-round"><svg><use href="#i-flash"/></svg></span>

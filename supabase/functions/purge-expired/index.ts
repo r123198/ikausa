@@ -1,6 +1,8 @@
 // Scheduled cleanup (run hourly or daily):
 //  1. Permanently deletes photos of rolls whose export window closed 7+ days ago.
 //  2. Removes uploads that were reserved but never finished (older than 1 hour).
+//  3. Starts the next landing page demo roll when one ends, then deletes the ended one
+//     and its photos.
 // Call with header `x-cron-secret: <CRON_SECRET>`.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -74,6 +76,25 @@ async function purgeStaleUploads(): Promise<number> {
   return stale.length;
 }
 
+/** The cover is left alone: the next demo roll reuses it. */
+async function rotateDemoRoll(): Promise<number> {
+  const { data: endedIds, error } = await supabase.rpc('rotate_demo_roll');
+  if (error) throw error;
+
+  for (const id of endedIds as string[]) {
+    const { data: photos, error: photosError } = await supabase
+      .from('photos')
+      .select('storage_path, original_path')
+      .eq('event_id', id);
+    if (photosError) throw photosError;
+
+    await removeFiles(photos.flatMap((p) => [p.storage_path, p.original_path].filter(Boolean)));
+    const { error: deleteError } = await supabase.from('events').delete().eq('id', id);
+    if (deleteError) throw deleteError;
+  }
+  return endedIds.length;
+}
+
 Deno.serve(async (req) => {
   const secret = Deno.env.get('CRON_SECRET');
   if (!secret || req.headers.get('x-cron-secret') !== secret) {
@@ -82,7 +103,8 @@ Deno.serve(async (req) => {
   try {
     const rolls = await purgeExpiredRolls();
     const uploads = await purgeStaleUploads();
-    return Response.json({ purgedRolls: rolls, removedStaleUploads: uploads });
+    const endedDemos = await rotateDemoRoll();
+    return Response.json({ purgedRolls: rolls, removedStaleUploads: uploads, endedDemoRolls: endedDemos });
   } catch (error) {
     console.error('Purge failed', error);
     return Response.json({ error: 'internal' }, { status: 500 });
